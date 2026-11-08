@@ -1,0 +1,165 @@
+import { z } from "zod";
+const money = z.number().int().min(0).max(1000000000).nullable();
+const id = z.string().min(1).max(100);
+export const layerSchema = z.object({
+  id,
+  itemId: id,
+  x: z.number().finite(),
+  y: z.number().finite(),
+  width: z.number().min(0.005).max(5),
+  height: z.number().min(0.005).max(5),
+  rotation: z.number().finite(),
+  flip: z.boolean(),
+});
+export const itemSchema = z.object({
+  id,
+  name: z.string().min(1).max(200),
+  category: z.string().min(1).max(80),
+  price: money,
+  quantity: z.number().int().min(1).max(999),
+  merchant: z.string().max(200),
+  url: z.string().max(4000),
+  image: z.string().max(4000),
+  observedAt: z.string().max(100),
+});
+export const projectSchema = z.object({
+  id,
+  name: z.string().min(1).max(120),
+  totalBudget: money,
+  categories: z.array(z.string().min(1).max(80)).max(50),
+  limits: z.record(
+    z
+      .object({ min: money, max: money, cap: money })
+      .refine(
+        (v) => v.min === null || v.max === null || v.min <= v.max,
+        "Mindestpreis über Höchstpreis",
+      ),
+  ),
+  shipping: z.record(money),
+  items: z.array(itemSchema).max(200),
+  scenes: z
+    .array(
+      z.object({
+        id,
+        name: z.string().max(120),
+        image: z.string(),
+        width: z.number().positive(),
+        height: z.number().positive(),
+        layers: z.array(layerSchema).max(200),
+      }),
+    )
+    .max(30),
+});
+export type Project = z.infer<typeof projectSchema>;
+export type Item = z.infer<typeof itemSchema>;
+export type Layer = z.infer<typeof layerSchema>;
+export type Scene = Project["scenes"][number];
+export const uid = () => crypto.randomUUID();
+export function newProject(): Project {
+  return {
+    id: uid(),
+    name: "Mein Schlafzimmer",
+    totalBudget: 40000,
+    categories: [
+      "Kleiderschrank",
+      "Vitrine",
+      "Kommode",
+      "Bett",
+      "Regal",
+      "Sofa",
+      "Tisch",
+      "Stuhl",
+      "Beleuchtung",
+    ],
+    limits: {},
+    shipping: {},
+    items: [],
+    scenes: [],
+  };
+}
+export function moneyInput(s: string): number | null {
+  if (!s.trim()) return null;
+  const n = Number(s.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
+}
+export const euro = (n: number | null) =>
+  n === null
+    ? "Preis offen"
+    : new Intl.NumberFormat("de-DE", {
+        style: "currency",
+        currency: "EUR",
+      }).format(n / 100);
+export const moneyValue = (n: number | null | undefined) =>
+  n == null ? "" : String(n / 100);
+export function safeUrl(s: string) {
+  try {
+    const u = new URL(s);
+    return ["http:", "https:"].includes(u.protocol) &&
+      !u.username &&
+      !u.password
+      ? u.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+export function budget(p: Project) {
+  const categories: Record<string, number> = {};
+  let goods = 0;
+  let complete = true;
+  const merchants = new Set<string>();
+  for (const i of p.items) {
+    if (i.price === null) complete = false;
+    goods += (i.price ?? 0) * i.quantity;
+    categories[i.category] =
+      (categories[i.category] ?? 0) + (i.price ?? 0) * i.quantity;
+    merchants.add(i.merchant);
+  }
+  let shipping = 0;
+  for (const m of merchants) {
+    if (p.shipping[m] == null) complete = false;
+    else shipping += p.shipping[m]!;
+  }
+  const total = goods + shipping;
+  return {
+    goods,
+    shipping,
+    total,
+    complete,
+    categories,
+    over: p.totalBudget !== null && total > p.totalBudget,
+    merchants: [...merchants],
+  };
+}
+export function csv(p: Project) {
+  const cell = (v: unknown) => {
+    let s = String(v ?? "");
+    if (/^[=+@\-\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replaceAll('"', '""') + '"';
+  };
+  return (
+    "\uFEFF" +
+    [
+      [
+        "Möbel",
+        "Kategorie",
+        "Anzahl",
+        "Einzelpreis EUR",
+        "Shop",
+        "Kauflink",
+        "Preisstand",
+      ],
+      ...p.items.map((i) => [
+        i.name,
+        i.category,
+        i.quantity,
+        i.price === null ? "" : (i.price / 100).toFixed(2),
+        i.merchant,
+        i.url,
+        i.observedAt,
+      ]),
+    ]
+      .map((r) => r.map(cell).join(";"))
+      .join("\r\n")
+  );
+}
