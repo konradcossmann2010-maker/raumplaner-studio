@@ -1976,3 +1976,70 @@ small {
   color: #294e43;
   margin-top: auto;
 }
+.furniture-art {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  padding: 10px;
+  background: #f5f3ed;
+  border-radius: 10px;
+}
+.before-after {
+  padding: 12px;
+  display: grid;
+  gap: 14px;
+}
+.comparison-slider {
+  position: relative;
+  overflow: hidden;
+}
+.comparison-slider > img {
+  display: block;
+  width: 100%;
+}
+.comparison-slider .comparison-before {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.comparison-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: white;
+  box-shadow: 0 0 3px #333;
+}
+.comparison-label {
+  position: absolute;
+  bottom: 10px;
+  background: #294e43;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+.comparison-label.before {
+  left: 10px;
+}
+.comparison-label.after {
+  right: 10px;
+}
+.comparison-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.comparison-side figure {
+  margin: 0;
+  min-width: 0;
+}
+.comparison-side img {
+  display: block;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .comparison-side {
+    grid-template-columns: 1fr;
+  }
+}

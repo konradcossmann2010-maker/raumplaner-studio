@@ -1,4 +1,5 @@
 import React from "react";
+import { furnitureArt } from "./furniture-art";
 import { type Project, type Item, euro, uid } from "./model";
 import { recommendProducts } from "./recommendations";
 const styles = [
@@ -139,6 +140,17 @@ export default function Furnishing({
                       <small>
                         {product.merchant} · {product.category}
                       </small>
+                      <img
+                        className="furniture-art"
+                        src={
+                          furnitureArt(product.category, preferences.style)
+                            .image
+                        }
+                        alt={
+                          product.category +
+                          " · schematische Zeichnung, kein Produktfoto"
+                        }
+                      />
                       <h4>{product.name}</h4>
                       <strong>Richtpreis ca. {euro(product.estimate)}</strong>
                       <p>{product.detail}</p>

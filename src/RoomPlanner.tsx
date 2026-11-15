@@ -210,8 +210,10 @@ export default function RoomPlanner({
         <strong>Raummaße und Passprüfung</strong>
         <p>
           Der 3D-Raum verwendet deine bestätigten Maße. Möbel werden als
-          vereinfachte Maßkörper mit Produktbild dargestellt. Dachschrägen und
-          Überschneidungen werden bei der Prüfung berücksichtigt.
+          vereinfachte Maßkörper mit Produktfoto oder schematischer
+          Möbelzeichnung dargestellt. Die Zeichnungen zeigen die Möbelart, kein
+          exaktes Produktmodell. Dachschrägen und Überschneidungen werden bei
+          der Prüfung berücksichtigt.
         </p>
       </div>
       <form
@@ -389,6 +391,7 @@ export default function RoomPlanner({
             if (o) edit(o, point);
           }}
           mode={mode}
+          style={project.furnishing?.style}
           showRoof={showRoof}
         />
       )}

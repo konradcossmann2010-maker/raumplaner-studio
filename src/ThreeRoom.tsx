@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { furnitureImage } from "./furniture-art";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import {
@@ -19,14 +20,16 @@ export default function ThreeRoom({
   onMove,
   mode,
   showRoof,
+  style,
 }: {
   room: Room3D;
-  items: (SizedItem & { image?: string })[];
+  items: (SizedItem & { image?: string; category?: string })[];
   selected: string;
   onSelect: (id: string) => void;
   onMove: (id: string, point: Partial<RoomObject>) => void;
   mode: "translate" | "rotate" | "drag";
   showRoof: boolean;
+  style?: string;
 }) {
   const host = useRef<HTMLDivElement>(null),
     state = useRef<any>(undefined),
@@ -318,10 +321,13 @@ export default function ThreeRoom({
       edges.position.y = size.height / 2;
       group.add(edges);
       const item = items.find((i) => i.id === object.itemId);
-      if (object.kind === "furniture" && item?.image) {
-        const texture = new THREE.TextureLoader().load(item.image, (t) => {
-          if (!alive) t.dispose();
-        });
+      if (object.kind === "furniture" && item) {
+        const texture = new THREE.TextureLoader().load(
+          furnitureImage(item, style),
+          (t) => {
+            if (!alive) t.dispose();
+          },
+        );
         texture.colorSpace = THREE.SRGBColorSpace;
         const front = new THREE.Mesh(
           new THREE.PlaneGeometry(size.width * 0.95, size.height * 0.95),
@@ -368,7 +374,7 @@ export default function ThreeRoom({
     return () => {
       alive = false;
     };
-  }, [room, items]);
+  }, [room, items, style]);
   useEffect(() => {
     const s = state.current;
     if (!s) return;

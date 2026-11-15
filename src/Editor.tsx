@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { type Scene, type Item, type Layer } from "./model";
 import { download } from "./api";
+import { furnitureImage } from "./furniture-art";
+import BeforeAfter from "./BeforeAfter";
 const brightnessFilters = [Konva.Filters.Brighten];
 function useImage(url: string) {
   const [loaded, set] = useState<{ url: string; image: HTMLImageElement }>();
@@ -43,6 +45,7 @@ function Furniture({
   onSelect,
   onChange,
   onReady,
+  style,
 }: {
   item: Item;
   layer: Layer;
@@ -51,10 +54,12 @@ function Furniture({
   selected: boolean;
   onSelect: () => void;
   onChange: (l: Layer) => void;
+  style?: string;
   onReady: (url: string, ready: boolean) => void;
 }) {
-  const image = useImage(item.image);
-  useEffect(() => onReady(item.image, !!image), [item.image, image, onReady]);
+  const url = furnitureImage(item, style);
+  const image = useImage(url);
+  useEffect(() => onReady(url, !!image), [url, image, onReady]);
   const ref = useRef<Konva.Image>(null);
   const tr = useRef<Konva.Transformer>(null);
   useEffect(() => {
@@ -139,17 +144,25 @@ export default function Editor({
   items,
   onChange,
   onUpload,
+  style,
 }: {
   scene?: Scene;
   items: Item[];
   onChange: (s: Scene) => void;
   onUpload: () => void;
+  style?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const stage = useRef<Konva.Stage>(null);
   const [size, setSize] = useState(800);
   const [selected, select] = useState("");
   const [original, setOriginal] = useState(false);
+  const [comparison, setComparison] = useState<{
+    before: string;
+    after: string;
+  } | null>(null);
+  const latestScene = useRef(scene);
+  latestScene.current = scene;
   const [ready, setReady] = useState<Record<string, boolean>>({});
   const onReady = useCallback(
     (url: string, loaded: boolean) =>
@@ -159,6 +172,7 @@ export default function Editor({
   const [history, setHistory] = useState<Scene[]>([]),
     [redo, setRedo] = useState<Scene[]>([]);
   const bg = useImage(scene?.image ?? "");
+  useEffect(() => setComparison(null), [scene, items, style]);
   useEffect(() => {
     const o = new ResizeObserver((e) => setSize(e[0].contentRect.width));
     if (box.current) o.observe(box.current);
@@ -166,6 +180,7 @@ export default function Editor({
   }, []);
   useEffect(() => {
     select("");
+    setComparison(null);
     setHistory([]);
     setRedo([]);
   }, [scene?.id, items.map((i) => i.id).join(",")]);
@@ -190,6 +205,13 @@ export default function Editor({
       });
   }
   const active = scene?.layers.find((l) => l.id === selected);
+  const imagesReady =
+    !!bg &&
+    !items.some(
+      (i) =>
+        scene?.layers.some((l) => l.itemId === i.id) &&
+        !ready[furnitureImage(i, style)],
+    );
   return (
     <div className="editor">
       <div className="editor-tools">
@@ -229,6 +251,36 @@ export default function Editor({
           >
             {original ? "Möbel zeigen" : "Original zeigen"}
           </button>
+          <button
+            disabled={!scene || !imagesReady}
+            onClick={() => {
+              select("");
+              setOriginal(false);
+              const current = scene;
+              setTimeout(() => {
+                if (
+                  !current ||
+                  latestScene.current !== current ||
+                  !stage.current
+                )
+                  return;
+                try {
+                  setComparison({
+                    before: current.image,
+                    after: stage.current.toDataURL({
+                      pixelRatio: current.width / size,
+                    }),
+                  });
+                } catch {
+                  alert(
+                    "Vergleich konnte nicht erstellt werden. Bitte Bilder erneut laden.",
+                  );
+                }
+              }, 100);
+            }}
+          >
+            Vorher / Nachher
+          </button>
           <span className="toolhint">
             <MousePointer2 size={14} /> Möbel anklicken & verschieben
           </span>
@@ -240,7 +292,7 @@ export default function Editor({
             items.some(
               (i) =>
                 scene.layers.some((l) => l.itemId === i.id) &&
-                (!i.image || !ready[i.image]),
+                !ready[furnitureImage(i, style)],
             )
           }
           onClick={() => {
@@ -263,7 +315,27 @@ export default function Editor({
           <span>Bild speichern</span>
         </button>
       </div>
-      <div className="canvas-wrap" ref={box}>
+      {comparison && (
+        <BeforeAfter
+          before={comparison.before}
+          after={comparison.after}
+          onClose={() => setComparison(null)}
+        />
+      )}
+      <div
+        className="canvas-wrap"
+        ref={box}
+        style={
+          comparison
+            ? {
+                height: 0,
+                minHeight: 0,
+                overflow: "hidden",
+                visibility: "hidden",
+              }
+            : undefined
+        }
+      >
         {scene ? (
           <>
             <Stage
@@ -290,6 +362,7 @@ export default function Editor({
                       <Furniture
                         key={l.id}
                         item={item}
+                        style={style}
                         layer={l}
                         w={size}
                         h={h}

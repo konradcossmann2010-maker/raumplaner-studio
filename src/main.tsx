@@ -30,6 +30,7 @@ import Cutout from "./Cutout";
 import PlanEditor from "./PlanEditor";
 import RoomPlanner from "./RoomPlanner";
 import Furnishing from "./Furnishing";
+import { furnitureArt, furnitureImage } from "./furniture-art";
 import { defaultRoom } from "./space";
 import PdfImport from "./PdfImport";
 import {
@@ -589,11 +590,6 @@ function App() {
   }
   function place(i: Item) {
     if (!p || !scene || scene.kind === "plan") return;
-    if (!i.image) {
-      setError("Bitte zuerst ein Möbelbild hochladen.");
-      setForm(i);
-      return;
-    }
     const s = {
       ...scene,
       layers: [
@@ -603,8 +599,8 @@ function App() {
           itemId: i.id,
           ...placement(
             scene,
-            i.imageWidth ?? 1,
-            i.imageHeight ?? 1,
+            i.imageWidth ?? furnitureArt(i.category).width,
+            i.imageHeight ?? furnitureArt(i.category).height,
             scene.layers.length,
           ),
         },
@@ -1026,6 +1022,7 @@ function App() {
                 <Editor
                   scene={scene}
                   items={p.items}
+                  style={p.furnishing?.style}
                   onChange={(s) =>
                     change({
                       ...p,
@@ -1302,9 +1299,10 @@ function App() {
                         {i.image ? (
                           <img src={i.image} alt={i.name} />
                         ) : (
-                          <div className="image-placeholder">
-                            <Armchair />
-                          </div>
+                          <img
+                            src={furnitureImage(i, p.furnishing?.style)}
+                            alt={i.category + " · schematische Zeichnung"}
+                          />
                         )}
                         <div>
                           <small>

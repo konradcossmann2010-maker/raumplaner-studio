@@ -16,7 +16,7 @@ export default function TopRoom({
   onMove,
 }: {
   room: Room3D;
-  items: SizedItem[];
+  items: (SizedItem & { category?: string })[];
   selected: string;
   onSelect: (id: string) => void;
   onMove: (id: string, point: Partial<RoomObject>) => void;
@@ -176,6 +176,36 @@ export default function TopRoom({
                 stroke={selected === o.id ? "#123d32" : "#667465"}
                 strokeWidth={pad * (selected === o.id ? 0.1 : 0.035)}
               />
+              <g
+                pointerEvents="none"
+                transform={`translate(${o.x} ${o.z}) rotate(${o.rotation}) scale(${size.width / 100} ${size.depth / 100}) translate(-50 -50)`}
+                fill="none"
+                stroke="#536357"
+                strokeWidth="2"
+              >
+                {items.find((i) => i.id === o.itemId)?.category === "Bett" ? (
+                  <>
+                    <rect x="7" y="5" width="86" height="90" rx="3" />
+                    <rect x="15" y="10" width="30" height="18" rx="4" />
+                    <rect x="55" y="10" width="30" height="18" rx="4" />
+                    <path d="M7 40H93" />
+                  </>
+                ) : items.find((i) => i.id === o.itemId)?.category ===
+                  "Sofa" ? (
+                  <>
+                    <rect x="5" y="5" width="90" height="22" />
+                    <rect x="5" y="27" width="14" height="68" />
+                    <rect x="81" y="27" width="14" height="68" />
+                    <path d="M50 27V95" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M5 85H95M50 5V80" />
+                    <circle cx="43" cy="75" r="2" />
+                    <circle cx="57" cy="75" r="2" />
+                  </>
+                )}
+              </g>
               <text
                 x={o.x}
                 y={o.z}
