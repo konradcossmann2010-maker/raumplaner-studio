@@ -42,6 +42,7 @@ import {
 } from "./model";
 import { api, upload, normalize, download } from "./api";
 import "./style.css";
+import { prepareFurniture, placement, furnitureSize } from "./compositing";
 import { shopSearches } from "./shops";
 import { isOffline } from "./offline";
 type RecordRow = {
@@ -97,13 +98,14 @@ function ProductForm({
   initial: Item;
   categories: string[];
   onClose: () => void;
-  onSave: (i: Item, f?: File) => Promise<void>;
+  onSave: (i: Item, f?: File, automatic?: boolean) => Promise<void>;
 }) {
   const [item, set] = useState(initial),
     [file, setFile] = useState<File>(),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [preview, setPreview] = useState("");
+  const [automatic, setAutomatic] = useState(!initial.originalImage);
   useEffect(() => {
     if (!file) {
       setPreview(item.image);
@@ -125,7 +127,7 @@ function ProductForm({
           try {
             if (item.url && !safeUrl(item.url))
               throw new Error("Bitte gültigen Produktlink angeben.");
-            await onSave(item, file);
+            await onSave(item, file, automatic);
             onClose();
           } catch (e) {
             setError((e as Error).message);
@@ -193,6 +195,18 @@ function ProductForm({
                 }}
               />
             </label>
+            {item.originalImage && (
+              <button
+                type="button"
+                onClick={() => {
+                  edit({ image: item.originalImage });
+                  setFile(undefined);
+                  setAutomatic(false);
+                }}
+              >
+                Originalbild verwenden
+              </button>
+            )}
             {item.image && (
               <button
                 type="button"
@@ -255,6 +269,19 @@ function ProductForm({
             </label>
           </div>
         </div>
+        <label className="cutout-option">
+          <input
+            type="checkbox"
+            checked={automatic}
+            onChange={(e) => setAutomatic(e.target.checked)}
+          />
+          Einfarbigen Hintergrund automatisch entfernen
+        </label>
+        <p className="fineprint">
+          Das Möbel erscheint nach dem Speichern direkt in deiner aktuellen
+          Raumansicht. Bei komplexen Hintergründen kannst du den Radierer
+          verwenden.
+        </p>
         <p className="fineprint">
           Produktdaten und Variante vor dem Übernehmen prüfen. Ein transparentes
           Produktbild eignet sich besonders gut für die Raumvorschau.
@@ -421,7 +448,13 @@ function App() {
         image,
         width: n.width,
         height: n.height,
-        layers: [],
+        layers: latest
+          .current!.items.filter((i) => i.image)
+          .map((i, index) => ({
+            id: uid(),
+            itemId: i.id,
+            ...placement(n, i.imageWidth ?? 1, i.imageHeight ?? 1, index),
+          })),
       };
       change({ ...latest.current!, scenes: [...latest.current!.scenes, s] });
       setSceneId(s.id);
@@ -432,7 +465,7 @@ function App() {
       setBusy(false);
     }
   }
-  async function saveItem(i: Item, file?: File) {
+  async function saveItem(i: Item, file?: File, automatic = true) {
     if (!p) return;
     let image = i.image;
     if (file) {
@@ -451,20 +484,84 @@ function App() {
         );
       }
     }
+    let imageWidth = i.imageWidth,
+      imageHeight = i.imageHeight,
+      originalImage = file ? undefined : i.originalImage;
+    if (image) {
+      const source = await (await fetch(image)).blob();
+      const prepared = await prepareFurniture(source, automatic);
+      imageWidth = prepared.width;
+      imageHeight = prepared.height;
+      if (prepared.changed) {
+        originalImage = image;
+        image = await upload(prepared.blob, p.id);
+      }
+    }
     const item = {
       ...i,
       image,
+      imageWidth,
+      imageHeight,
+      originalImage,
       merchant: i.merchant.trim() || "Unbekannter Händler",
       url: safeUrl(i.url),
     };
     const now = latest.current!;
+    const newItem = !now.items.some((x) => x.id === item.id);
     change({
       ...now,
+      scenes: now.scenes.map((s) => {
+        const updated = {
+          ...s,
+          layers: s.layers.map((l) => {
+            if (
+              l.itemId !== item.id ||
+              !imageWidth ||
+              !imageHeight ||
+              item.image === now.items.find((x) => x.id === item.id)?.image
+            )
+              return l;
+            const { width, height } = furnitureSize(
+              s,
+              imageWidth,
+              imageHeight,
+              l.height,
+              5,
+            );
+            return {
+              ...l,
+              x: l.x + (l.width - width) / 2,
+              y: l.y + l.height - height,
+              width,
+              height,
+            };
+          }),
+        };
+        return s.id === sceneId && newItem && image
+          ? {
+              ...updated,
+              layers: [
+                ...updated.layers,
+                {
+                  id: uid(),
+                  itemId: item.id,
+                  ...placement(
+                    s,
+                    imageWidth ?? 1,
+                    imageHeight ?? 1,
+                    s.layers.length,
+                  ),
+                },
+              ],
+            }
+          : updated;
+      }),
       items: now.items.some((x) => x.id === item.id)
         ? now.items.map((x) => (x.id === item.id ? item : x))
         : [...now.items, item],
     });
     setPanel("selected");
+    if (newItem && sceneId && image) setTab("room");
   }
   function place(i: Item) {
     if (!p || !scene) return;
@@ -480,12 +577,12 @@ function App() {
         {
           id: uid(),
           itemId: i.id,
-          x: 0.35,
-          y: 0.3,
-          width: 0.3,
-          height: 0.4,
-          rotation: 0,
-          flip: false,
+          ...placement(
+            scene,
+            i.imageWidth ?? 1,
+            i.imageHeight ?? 1,
+            scene.layers.length,
+          ),
         },
       ],
     };
@@ -595,7 +692,10 @@ function App() {
                         JSON.parse(await f.text()),
                       );
                       for (const image of [
-                        ...imported.items.map((i) => i.image),
+                        ...imported.items.flatMap((i) => [
+                          i.image,
+                          i.originalImage ?? "",
+                        ]),
                         ...imported.scenes.map((s) => s.image),
                       ])
                         if (
@@ -1274,11 +1374,19 @@ function App() {
           src={cutout.image}
           onClose={() => setCutout(null)}
           onSave={async (blob) => {
-            const image = await upload(blob, p.id);
+            const prepared = await prepareFurniture(blob, false);
+            const image = await upload(prepared.blob, p.id);
             change({
               ...latest.current!,
               items: latest.current!.items.map((i) =>
-                i.id === cutout.id ? { ...i, image } : i,
+                i.id === cutout.id
+                  ? {
+                      ...i,
+                      image,
+                      imageWidth: prepared.width,
+                      imageHeight: prepared.height,
+                    }
+                  : i,
               ),
             });
           }}

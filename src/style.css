@@ -1439,3 +1439,24 @@ small {
   background: white;
   border-radius: 6px;
 }
+
+.cutout-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  font-size: 12px;
+}
+.cutout-option input {
+  width: auto;
+  margin: 0;
+}
+.transform-bar .appearance-control {
+  width: 90px;
+}
+.appearance-control input {
+  padding: 0;
+}
+.editor-tools .toolhint {
+  display: none;
+}

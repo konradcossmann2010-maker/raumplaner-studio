@@ -112,7 +112,7 @@ export async function api(req: Request, env: Env): Promise<Response> {
             if (!ids.has(l.itemId)) throw new Error("Möbelzuordnung fehlt.");
         for (const image of [
           ...p.scenes.map((s) => s.image),
-          ...p.items.map((i) => i.image),
+          ...p.items.flatMap((i) => [i.image, i.originalImage ?? ""]),
         ].filter(Boolean)) {
           const aid = image.replace("/api/assets/", "");
           if (

@@ -54,3 +54,11 @@ node scripts/offline-smoke.mjs
 Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Standardpfad für Chromium: `/usr/bin/chromium`.
 
 Mit laufendem lokalem Server prüfen `scripts/smoke.mjs` und `scripts/edge-cases.mjs` zusätzlich den bisherigen Online-Speicherweg. Testbilder und Screenshots liegen in `outputs/` und sind nicht Teil des Quellcodes.
+
+## Möbel direkt im Raumfoto
+
+Neue Möbel mit Bild werden beim Speichern automatisch in die aktuelle Raumansicht eingesetzt. Ist noch kein Raumfoto vorhanden, werden sie beim Hinzufügen eines Fotos mit platziert. Dabei bleibt das Seitenverhältnis des Produktbilds erhalten.
+
+„Einfarbigen Hintergrund automatisch entfernen“ entfernt zusammenhängende einfache Hintergründe am Bildrand und schneidet das verbleibende Möbel zu. Das Original bleibt über „Originalbild verwenden“ erreichbar. Bei komplexen Hintergründen ist der manuelle Radierer verfügbar. Die Verarbeitung läuft im Browser, ohne externe API oder Bilddienst.
+
+Nach dem Anklicken eines Möbels kannst du neben Position und Größe auch Schatten, Helligkeit und Neigung einstellen. „Original zeigen“ blendet die Möbel zum Vergleich aus. Der PNG-Export enthält die sichtbare Raumansicht samt Anpassungen. Die automatische Platzierung ist ein veränderbarer Vorschlag; Raumgeometrie, tatsächliche Möbelmaße und Verdeckungen werden nicht automatisch erkannt.

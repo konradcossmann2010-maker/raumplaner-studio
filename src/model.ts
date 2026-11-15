@@ -10,6 +10,9 @@ export const layerSchema = z.object({
   height: z.number().min(0.005).max(5),
   rotation: z.number().finite(),
   flip: z.boolean(),
+  shadow: z.number().min(0).max(1).optional(),
+  skew: z.number().min(-0.5).max(0.5).optional(),
+  brightness: z.number().min(-0.5).max(0.5).optional(),
 });
 export const itemSchema = z.object({
   id,
@@ -24,6 +27,12 @@ export const itemSchema = z.object({
     .refine((v) => !v || !!safeUrl(v), "Ungültiger Produktlink"),
   image: z.string().max(16 * 1024 * 1024),
   observedAt: z.string().max(100),
+  imageWidth: z.number().positive().optional(),
+  imageHeight: z.number().positive().optional(),
+  originalImage: z
+    .string()
+    .max(16 * 1024 * 1024)
+    .optional(),
 });
 export const projectSchema = z
   .object({

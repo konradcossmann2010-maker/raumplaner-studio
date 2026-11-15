@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { type Scene, type Item, type Layer } from "./model";
 import { download } from "./api";
+const brightnessFilters = [Konva.Filters.Brighten];
 function useImage(url: string) {
   const [loaded, set] = useState<{ url: string; image: HTMLImageElement }>();
   useEffect(() => {
@@ -57,6 +58,13 @@ function Furniture({
   const ref = useRef<Konva.Image>(null);
   const tr = useRef<Konva.Transformer>(null);
   useEffect(() => {
+    const n = ref.current;
+    if (!n || !image) return;
+    if (layer.brightness) n.cache({ pixelRatio: 2 });
+    else n.clearCache();
+    n.getLayer()?.batchDraw();
+  }, [image, layer.brightness, layer.shadow, layer.width, layer.height, w, h]);
+  useEffect(() => {
     if (selected && tr.current && ref.current) {
       tr.current.nodes([ref.current]);
       tr.current.getLayer()?.batchDraw();
@@ -73,6 +81,17 @@ function Furniture({
         height={layer.height * h}
         scaleX={layer.flip ? -1 : 1}
         rotation={layer.rotation}
+        skewX={layer.skew ?? 0}
+        shadowColor="black"
+        shadowOpacity={layer.shadow ?? 0}
+        shadowBlur={Math.max(
+          3,
+          Math.min(layer.width * w, layer.height * h) * 0.045,
+        )}
+        shadowOffsetX={layer.width * w * 0.015}
+        shadowOffsetY={layer.height * h * 0.025}
+        filters={layer.brightness ? brightnessFilters : undefined}
+        brightness={layer.brightness ?? 0}
         draggable
         onClick={onSelect}
         onTap={onSelect}
@@ -130,6 +149,7 @@ export default function Editor({
   const stage = useRef<Konva.Stage>(null);
   const [size, setSize] = useState(800);
   const [selected, select] = useState("");
+  const [original, setOriginal] = useState(false);
   const [ready, setReady] = useState<Record<string, boolean>>({});
   const onReady = useCallback(
     (url: string, loaded: boolean) =>
@@ -149,6 +169,12 @@ export default function Editor({
     setHistory([]);
     setRedo([]);
   }, [scene?.id, items.map((i) => i.id).join(",")]);
+  useEffect(() => {
+    if (scene?.layers.length) {
+      select(scene.layers.at(-1)!.id);
+      setOriginal(false);
+    }
+  }, [scene?.id, scene?.layers.length]);
   const h = scene ? (size * scene.height) / scene.width : size * 0.64;
   function commit(s: Scene) {
     if (!scene) return;
@@ -193,6 +219,16 @@ export default function Editor({
             <Redo2 size={18} />
           </button>
           <span className="divider" />
+          <button
+            disabled={!scene?.layers.length}
+            aria-pressed={original}
+            onClick={() => {
+              setOriginal(!original);
+              select("");
+            }}
+          >
+            {original ? "Möbel zeigen" : "Original zeigen"}
+          </button>
           <span className="toolhint">
             <MousePointer2 size={14} /> Möbel anklicken & verschieben
           </span>
@@ -247,22 +283,23 @@ export default function Editor({
             >
               <CanvasLayer>
                 <KImage name="background" image={bg} width={size} height={h} />
-                {scene.layers.map((l) => {
-                  const item = items.find((i) => i.id === l.itemId);
-                  return item ? (
-                    <Furniture
-                      key={l.id}
-                      item={item}
-                      layer={l}
-                      w={size}
-                      h={h}
-                      selected={selected === l.id}
-                      onSelect={() => select(l.id)}
-                      onChange={change}
-                      onReady={onReady}
-                    />
-                  ) : null;
-                })}
+                {!original &&
+                  scene.layers.map((l) => {
+                    const item = items.find((i) => i.id === l.itemId);
+                    return item ? (
+                      <Furniture
+                        key={l.id}
+                        item={item}
+                        layer={l}
+                        w={size}
+                        h={h}
+                        selected={selected === l.id}
+                        onSelect={() => select(l.id)}
+                        onChange={change}
+                        onReady={onReady}
+                      />
+                    ) : null;
+                  })}
               </CanvasLayer>
             </Stage>
             {!bg && <div className="loading-photo">Foto wird geladen …</div>}
@@ -342,6 +379,44 @@ export default function Editor({
               />
             </label>
           ))}
+          <label className="appearance-control">
+            Schatten
+            <input
+              aria-label="Schatten"
+              type="range"
+              min="0"
+              max=".7"
+              step=".01"
+              value={active.shadow ?? 0}
+              onChange={(e) => change({ ...active, shadow: +e.target.value })}
+            />
+          </label>
+          <label className="appearance-control">
+            Helligkeit
+            <input
+              aria-label="Helligkeit"
+              type="range"
+              min="-.4"
+              max=".4"
+              step=".01"
+              value={active.brightness ?? 0}
+              onChange={(e) =>
+                change({ ...active, brightness: +e.target.value })
+              }
+            />
+          </label>
+          <label className="appearance-control">
+            Neigung
+            <input
+              aria-label="Neigung"
+              type="range"
+              min="-.3"
+              max=".3"
+              step=".01"
+              value={active.skew ?? 0}
+              onChange={(e) => change({ ...active, skew: +e.target.value })}
+            />
+          </label>
           <button
             title="Spiegeln"
             onClick={() => change({ ...active, flip: !active.flip })}
