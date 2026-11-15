@@ -136,6 +136,12 @@ export const projectSchema = z
     name: z.string().min(1).max(120),
     totalBudget: money,
     room3D: room3DSchema.optional(),
+    furnishing: z
+      .object({
+        style: z.string().max(80),
+        wanted: z.array(z.string().min(1).max(80)).max(50),
+      })
+      .optional(),
     categories: z.array(z.string().min(1).max(80)).max(50),
     limits: z.record(
       z

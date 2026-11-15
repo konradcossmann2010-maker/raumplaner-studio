@@ -29,6 +29,8 @@ import Editor from "./Editor";
 import Cutout from "./Cutout";
 import PlanEditor from "./PlanEditor";
 import RoomPlanner from "./RoomPlanner";
+import Furnishing from "./Furnishing";
+import { defaultRoom } from "./space";
 import PdfImport from "./PdfImport";
 import {
   type Project,
@@ -606,7 +608,11 @@ function App() {
   function search() {
     try {
       setShopLinks(
-        shopSearches(category + " " + query, limits.min, limits.max),
+        shopSearches(
+          category + " " + (p?.furnishing?.style ?? "") + " " + query,
+          limits.min,
+          limits.max,
+        ),
       );
       setError("");
     } catch (e) {
@@ -900,6 +906,16 @@ function App() {
               Budget
             </button>
           </nav>
+          <Furnishing
+            project={p}
+            onChange={change}
+            onSearch={(c) => {
+              setCategory(c);
+              setPanel("discover");
+              setView3D(false);
+              setTab("furniture");
+            }}
+          />
           <main
             className={
               "workspace mobile-" + tab + (view3D ? " space-active" : "")
@@ -1288,6 +1304,44 @@ function App() {
                         </div>
                       </div>
                       <div className="item-actions">
+                        <button
+                          className="primary small"
+                          onClick={() => {
+                            const room = p.room3D ?? defaultRoom();
+                            if (room.objects.length >= 100) {
+                              setError("Höchstens 100 Objekte in 3D möglich.");
+                              return;
+                            }
+                            const existing = room.objects.find(
+                              (o) => o.itemId === i.id,
+                            );
+                            const objectId = existing?.id ?? uid();
+                            change({
+                              ...p,
+                              room3D: {
+                                ...room,
+                                objects: existing
+                                  ? room.objects
+                                  : [
+                                      ...room.objects,
+                                      {
+                                        id: objectId,
+                                        kind: "furniture",
+                                        itemId: i.id,
+                                        x: room.width / 2,
+                                        y: 0,
+                                        z: room.length / 2,
+                                        rotation: 0,
+                                      },
+                                    ],
+                              },
+                            });
+                            setView3D(true);
+                            setTab("room");
+                          }}
+                        >
+                          In 3D bewegen
+                        </button>
                         <button
                           className="primary small"
                           disabled={!scene || scene.kind === "plan"}

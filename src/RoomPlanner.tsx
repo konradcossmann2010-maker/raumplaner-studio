@@ -33,7 +33,7 @@ export default function RoomPlanner({
 }) {
   const room = project.room3D ?? defaultRoom(),
     [selected, setSelected] = useState(""),
-    [mode, setMode] = useState<"translate" | "rotate">("translate"),
+    [mode, setMode] = useState<"translate" | "rotate" | "drag">("translate"),
     [showRoof, setShowRoof] = useState(true),
     [error, setError] = useState(""),
     [draft, setDraft] = useState({
@@ -319,6 +319,12 @@ export default function RoomPlanner({
       </div>
       <div className="three-tools">
         <button
+          className={mode === "drag" ? "active" : ""}
+          onClick={() => setMode("drag")}
+        >
+          Direkt am Möbel ziehen
+        </button>
+        <button
           className={mode === "translate" ? "active" : ""}
           onClick={() => setMode("translate")}
         >
@@ -340,9 +346,10 @@ export default function RoomPlanner({
         </label>
       </div>
       <p className="fineprint">
-        Möbel oder Lautsprecher anklicken und mit den farbigen Pfeilen bewegen.
-        Leere Fläche ziehen: Kamera drehen. Mausrad oder zwei Finger: zoomen.
-        Positionen lassen sich auch unten als Zahlen eingeben.
+        Im Modus „Direkt am Möbel ziehen“ Möbel mit Maus oder Finger auf dem
+        Boden verschieben. Für Höhe und genaue Position die farbigen Pfeile
+        verwenden. Leere Fläche ziehen: Kamera drehen. Mausrad oder zwei Finger:
+        zoomen. Positionen lassen sich auch unten als Zahlen eingeben.
       </p>
       <ThreeRoom
         room={room}

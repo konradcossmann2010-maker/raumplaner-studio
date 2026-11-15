@@ -102,3 +102,9 @@ Prüfe den markierten Kandidaten und gib die zugehörige Wand, gemessene Kniesto
 Die Dachflächen werden aus denselben Ebenen berechnet wie die Passprüfung. Damit stimmen auch steile Knicke und Schnittlinien zwischen mehreren Schrägen mit der geometrisch verfügbaren Höhe überein. 3D-Geometrie, Möbelmaße und bestätigte Schrägen werden im Projekt und in Offline-Sicherungen gespeichert. Alle Berechnungen und die Fotoanalyse laufen im Browser, ohne externe API.
 
 Zusätzlicher Browsertest: `node scripts/space-smoke.mjs`. Er prüft eine echte WebGL-Ansicht mit Software-Rendering, gemessene Raum-/Möbelmaße, Dachkanten-Vorschläge, die Passprüfung unter einer Schräge, einen tatsächlichen Mauszug am 3D-Pfeil, Audiohöhe, Speicherung und mobile Breite bei abgeschaltetem Netzwerk.
+
+### Stil wählen und Möbel direkt ziehen
+
+Oben im Projekt lassen sich Möbelstil und gewünschte Möbelarten auswählen. Die Auswahl wird im Projekt gespeichert; die Suchknöpfe wählen die jeweilige Kategorie und der Stil ergänzt die Shop-Suchlinks. Bestehende Produkte werden nicht automatisch umgefärbt oder entfernt.
+
+In der Möbelauswahl öffnet „In 3D bewegen“ das Produkt auch ohne Raumfoto im 3D-Raum. Bereits platzierte Produkte werden dabei nicht doppelt eingefügt. Mit „Direkt am Möbel ziehen“ lassen sich Möbel oder Lautsprecher mit Maus oder Finger auf der horizontalen Ebene verschieben; ihre Höhe bleibt erhalten. Die farbigen Achsen dienen weiterhin zum Bewegen in allen drei Richtungen, der Drehmodus zum Drehen. Die Passprüfung wird nach dem Loslassen aktualisiert und die Position automatisch gespeichert. Ohne Produktmaße bleibt die Darstellung ein Platzhalter.

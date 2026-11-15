@@ -1871,3 +1871,59 @@ small {
     display: block;
   }
 }
+.furnishing {
+  margin: 18px 24px;
+  padding: 22px;
+  border: 1px solid var(--line, #d8ddd5);
+  border-radius: 16px;
+  background: #f8f7f2;
+  display: grid;
+  gap: 14px;
+}
+.furnishing h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.furnishing p {
+  margin: 0;
+  color: #5d685e;
+}
+.furnishing select {
+  display: block;
+  margin-top: 6px;
+  width: min(100%, 340px);
+}
+.furnishing fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.furnishing legend {
+  margin-bottom: 8px;
+}
+.furnishing-types,
+.furnishing-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.furnishing-types label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.furnishing-types input {
+  width: auto;
+}
+.three-viewport canvas {
+  touch-action: none;
+}
+@media (max-width: 600px) {
+  .furnishing {
+    margin: 12px;
+    padding: 14px;
+  }
+}

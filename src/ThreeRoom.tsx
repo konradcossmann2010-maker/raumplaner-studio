@@ -25,7 +25,7 @@ export default function ThreeRoom({
   selected: string;
   onSelect: (id: string) => void;
   onMove: (id: string, point: Partial<RoomObject>) => void;
-  mode: "translate" | "rotate";
+  mode: "translate" | "rotate" | "drag";
   showRoof: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
@@ -104,6 +104,73 @@ export default function ThreeRoom({
     observer.observe(host.current);
     resize();
     let down = { x: 0, y: 0, axis: false };
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let dragging: {
+      group: THREE.Group;
+      start: THREE.Vector3;
+      offset: THREE.Vector3;
+      pointer: number;
+    } | null = null;
+    const rayAt = (e: PointerEvent) => {
+      const box = renderer.domElement.getBoundingClientRect();
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(
+        new THREE.Vector2(
+          ((e.clientX - box.left) / box.width) * 2 - 1,
+          (-(e.clientY - box.top) / box.height) * 2 + 1,
+        ),
+        camera,
+      );
+      return ray;
+    };
+    const directDown = (e: PointerEvent) => {
+      if (state.current?.mode !== "drag" || e.button !== 0 || dragging) return;
+      const ray = rayAt(e),
+        hit = ray.intersectObjects([...objects.values()], true)[0];
+      const group = hit && objects.get(hit.object.userData.id);
+      const point = ray.ray.intersectPlane(plane, new THREE.Vector3());
+      if (!group || !point) return;
+      dragging = {
+        group,
+        start: group.position.clone(),
+        offset: group.position.clone().sub(point),
+        pointer: e.pointerId,
+      };
+      orbit.enabled = false;
+      renderer.domElement.setPointerCapture(e.pointerId);
+      e.stopImmediatePropagation();
+    };
+    const directMove = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== dragging.pointer) return;
+      e.stopImmediatePropagation();
+      const point = rayAt(e).ray.intersectPlane(plane, new THREE.Vector3());
+      if (point) {
+        dragging.group.position.x = point.x + dragging.offset.x;
+        dragging.group.position.z = point.z + dragging.offset.z;
+      }
+    };
+    const directUp = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== dragging.pointer) return;
+      e.stopImmediatePropagation();
+      const d = dragging;
+      dragging = null;
+      orbit.enabled = true;
+      if (renderer.domElement.hasPointerCapture(e.pointerId))
+        renderer.domElement.releasePointerCapture(e.pointerId);
+      if (e.type === "pointercancel") {
+        d.group.position.copy(d.start);
+        return;
+      }
+      callbacks.current.onSelect(d.group.userData.id);
+      callbacks.current.onMove(d.group.userData.id, {
+        x: d.group.position.x,
+        z: d.group.position.z,
+      });
+    };
+    renderer.domElement.addEventListener("pointerdown", directDown, true);
+    renderer.domElement.addEventListener("pointermove", directMove, true);
+    renderer.domElement.addEventListener("pointerup", directUp, true);
+    renderer.domElement.addEventListener("pointercancel", directUp, true);
     const pointerDown = (e: PointerEvent) => {
       down = { x: e.clientX, y: e.clientY, axis: transform.axis !== null };
     };
@@ -129,6 +196,10 @@ export default function ThreeRoom({
       renderer.render(scene, camera);
     });
     return () => {
+      renderer.domElement.removeEventListener("pointerdown", directDown, true);
+      renderer.domElement.removeEventListener("pointermove", directMove, true);
+      renderer.domElement.removeEventListener("pointerup", directUp, true);
+      renderer.domElement.removeEventListener("pointercancel", directUp, true);
       observer.disconnect();
       renderer.setAnimationLoop(null);
       renderer.domElement.removeEventListener("pointerdown", pointerDown);
@@ -308,7 +379,10 @@ export default function ThreeRoom({
   useEffect(() => {
     const t = state.current?.transform;
     if (t) {
-      t.setMode(mode);
+      state.current.mode = mode;
+      t.enabled = mode !== "drag";
+      t.getHelper().visible = mode !== "drag";
+      t.setMode(mode === "drag" ? "translate" : mode);
       t.showX = mode === "translate";
       t.showY = true;
       t.showZ = mode === "translate";
