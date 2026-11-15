@@ -915,6 +915,10 @@ function App() {
             </button>
           </nav>
           <Furnishing
+            onRecommend={(item) => {
+              setCategory(item.category);
+              setForm(item);
+            }}
             project={p}
             onChange={change}
             onSearch={(c) => {
@@ -1531,7 +1535,7 @@ function App() {
       {form && p && (
         <ProductForm
           initial={form}
-          categories={p.categories}
+          categories={[...new Set([...p.categories, form.category])]}
           onClose={() => setForm(null)}
           onSave={saveItem}
         />

@@ -116,3 +116,9 @@ Unter „3D & Passprüfung“ öffnet „Grundriss aus Maßen“ eine maßstäbl
 Im Möbel-Formular markiert „Bereits vorhanden“ einen Bestandsgegenstand. Dieser bleibt in der Planung und Passprüfung, verursacht aber keine Kauf- oder Versandkosten und entfällt aus der CSV-Einkaufsliste. Der Originalpreis bleibt gespeichert, wenn die Kennzeichnung später entfernt wird.
 
 Die Ergänzungen entstanden nach einem [Vergleich mit der verlinkten Referenz](docs/reference-comparison.md).
+
+### Konkrete Produktvorschläge
+
+Nach Auswahl von Stil und Möbelarten erscheinen automatisch benannte Modelle aus einem lokalen, redaktionellen Beispielkatalog (25 Modelle). Die Filter berücksichtigen hinterlegte Richtpreise, Kategorie-Preisgrenzen, Kategorienbudget und das bekannte Restbudget. Mehrere Vorschläge sind Alternativen und bilden noch kein gemeinsam budgetgeprüftes Set. Für unbekannte Kombinationen erscheint eine Suchmöglichkeit, keine erfundene Empfehlung.
+
+Die Karten nennen das Modell, den Händler, den Richtpreis und eine Beispielgröße. Der Link sucht genau dieses Modell auf der offiziellen Händlerseite; es handelt sich nicht um einen live geprüften Direktlink zu einer verfügbaren Variante. Preise, Verfügbarkeit, Zubehör und Maße können abweichen. „Vorschlag prüfen und übernehmen“ öffnet das Produktformular mit Modellname, Kategorie und Link. Ein tatsächlicher Kaufpreis muss dort eingegeben werden; Beispielgrößen werden nicht ungeprüft für die Passprüfung verwendet. Bilder können wie bisher hochgeladen werden. Die Vorschläge benötigen weder API-Schlüssel noch Netzverbindung nach dem Laden der App; die Händlerseite benötigt Internet.
