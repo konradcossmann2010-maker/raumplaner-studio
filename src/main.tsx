@@ -27,6 +27,8 @@ import {
 import { flushLatest } from "./persistence";
 import Editor from "./Editor";
 import Cutout from "./Cutout";
+import PlanEditor from "./PlanEditor";
+import PdfImport from "./PdfImport";
 import {
   type Project,
   type Item,
@@ -320,6 +322,8 @@ function App() {
     [form, setForm] = useState<Item | null>(null),
     [cutout, setCutout] = useState<Item | null>(null),
     [shopLinks, setShopLinks] = useState<ReturnType<typeof shopSearches>>([]);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const planInput = useRef<HTMLInputElement>(null);
   const revision = useRef(0),
     latest = useRef<Project | null>(null),
     saved = useRef(""),
@@ -435,32 +439,40 @@ function App() {
   const scene = p?.scenes.find((s) => s.id === sceneId),
     b = p ? budget(p) : null,
     limits = p?.limits[category] ?? { min: null, max: null, cap: null };
-  async function addPhoto(file: File) {
+  async function addPhoto(file: File, kind: "photo" | "plan" = "photo") {
     if (!p) return;
     setBusy(true);
     setError("");
     try {
+      if (latest.current!.scenes.length >= 30)
+        throw new Error("Pro Projekt sind höchstens 30 Ansichten möglich.");
       const n = await normalize(file);
       const image = await upload(n.blob, p.id);
       const s: Scene = {
         id: uid(),
         name: file.name.replace(/\.[^.]+$/, ""),
         image,
+        kind,
         width: n.width,
         height: n.height,
-        layers: latest
-          .current!.items.filter((i) => i.image)
-          .map((i, index) => ({
-            id: uid(),
-            itemId: i.id,
-            ...placement(n, i.imageWidth ?? 1, i.imageHeight ?? 1, index),
-          })),
+        layers:
+          kind === "plan"
+            ? []
+            : latest
+                .current!.items.filter((i) => i.image)
+                .map((i, index) => ({
+                  id: uid(),
+                  itemId: i.id,
+                  ...placement(n, i.imageWidth ?? 1, i.imageHeight ?? 1, index),
+                })),
       };
       change({ ...latest.current!, scenes: [...latest.current!.scenes, s] });
       setSceneId(s.id);
       setTab("room");
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -537,7 +549,7 @@ function App() {
             };
           }),
         };
-        return s.id === sceneId && newItem && image
+        return s.id === sceneId && s.kind !== "plan" && newItem && image
           ? {
               ...updated,
               layers: [
@@ -564,7 +576,7 @@ function App() {
     if (newItem && sceneId && image) setTab("room");
   }
   function place(i: Item) {
-    if (!p || !scene) return;
+    if (!p || !scene || scene.kind === "plan") return;
     if (!i.image) {
       setError("Bitte zuerst ein Möbelbild hochladen.");
       setForm(i);
@@ -884,18 +896,47 @@ function App() {
             <section className="room-pane">
               <div className="section-heading">
                 <div>
-                  <h2>Dein Raum</h2>
+                  <h2>
+                    {scene?.kind === "plan" ? "Hausplan & Audio" : "Dein Raum"}
+                  </h2>
                   <p>Aus Ideen wird ein Zuhause.</p>
                 </div>
-                <button
-                  className="outline"
-                  disabled={busy}
-                  onClick={() => photoInput.current?.click()}
-                >
-                  <ImagePlus size={16} />
-                  Foto hinzufügen
-                </button>
+                <div className="scene-upload-buttons">
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => planInput.current?.click()}
+                  >
+                    Hausplan hochladen
+                  </button>
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => photoInput.current?.click()}
+                  >
+                    <ImagePlus size={16} />
+                    Foto hinzufügen
+                  </button>
+                </div>
               </div>
+              <input
+                ref={planInput}
+                hidden
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    if (
+                      f.type === "application/pdf" ||
+                      f.name.toLowerCase().endsWith(".pdf")
+                    )
+                      setPdfFile(f);
+                    else addPhoto(f, "plan");
+                  }
+                  e.target.value = "";
+                }}
+              />
               <input
                 hidden
                 ref={photoInput}
@@ -907,17 +948,30 @@ function App() {
                   e.target.value = "";
                 }}
               />
-              <Editor
-                scene={scene}
-                items={p.items}
-                onChange={(s) =>
-                  change({
-                    ...p,
-                    scenes: p.scenes.map((x) => (x.id === s.id ? s : x)),
-                  })
-                }
-                onUpload={() => photoInput.current?.click()}
-              />
+              {scene?.kind === "plan" ? (
+                <PlanEditor
+                  key={scene.id}
+                  scene={scene}
+                  onChange={(s) =>
+                    change({
+                      ...p,
+                      scenes: p.scenes.map((x) => (x.id === s.id ? s : x)),
+                    })
+                  }
+                />
+              ) : (
+                <Editor
+                  scene={scene}
+                  items={p.items}
+                  onChange={(s) =>
+                    change({
+                      ...p,
+                      scenes: p.scenes.map((x) => (x.id === s.id ? s : x)),
+                    })
+                  }
+                  onUpload={() => photoInput.current?.click()}
+                />
+              )}
               {p.scenes.length > 0 && (
                 <div className="scenes">
                   {p.scenes.map((s) => (
@@ -1201,7 +1255,7 @@ function App() {
                       <div className="item-actions">
                         <button
                           className="primary small"
-                          disabled={!scene}
+                          disabled={!scene || scene.kind === "plan"}
                           onClick={() => place(i)}
                         >
                           <Plus size={15} />
@@ -1360,6 +1414,18 @@ function App() {
             </section>
           </main>
         </>
+      )}
+      {pdfFile && p && (
+        <PdfImport
+          file={pdfFile}
+          onClose={() => setPdfFile(null)}
+          onImport={async (f) => {
+            if (!(await addPhoto(f, "plan")))
+              throw new Error(
+                "Der Hausplan konnte nicht übernommen werden. Bitte die Meldung prüfen.",
+              );
+          }}
+        />
       )}
       {form && p && (
         <ProductForm

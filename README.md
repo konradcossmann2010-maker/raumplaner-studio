@@ -62,3 +62,19 @@ Neue Möbel mit Bild werden beim Speichern automatisch in die aktuelle Raumansic
 „Einfarbigen Hintergrund automatisch entfernen“ entfernt zusammenhängende einfache Hintergründe am Bildrand und schneidet das verbleibende Möbel zu. Das Original bleibt über „Originalbild verwenden“ erreichbar. Bei komplexen Hintergründen ist der manuelle Radierer verfügbar. Die Verarbeitung läuft im Browser, ohne externe API oder Bilddienst.
 
 Nach dem Anklicken eines Möbels kannst du neben Position und Größe auch Schatten, Helligkeit und Neigung einstellen. „Original zeigen“ blendet die Möbel zum Vergleich aus. Der PNG-Export enthält die sichtbare Raumansicht samt Anpassungen. Die automatische Platzierung ist ein veränderbarer Vorschlag; Raumgeometrie, tatsächliche Möbelmaße und Verdeckungen werden nicht automatisch erkannt.
+
+## Hauspläne und Audioempfehlungen
+
+„Hausplan hochladen“ akzeptiert JPG, PNG, WebP und PDF (PDF bis 20 MB). Bei mehrseitigen PDFs wählst du eine Seite; sie wird lokal als Bild übernommen. PDF-Worker und Bilddecoder sind eingebettet, es wird kein PDF-Service oder API-Schlüssel benötigt. Beschädigte oder nicht unterstützte Bilddaten blockieren die Übernahme mit einer Fehlermeldung. CAD-Dateien und passwortgeschützte PDFs bitte vorher als Bild/PDF ohne Schutz exportieren.
+
+Im Plan markierst du einen rechteckigen Raum innerhalb seiner Wände. Gib die tatsächliche Breite/Tiefe in Metern und die Frontwand an. Die App erkennt Räume und den Maßstab nicht automatisch. Für L-förmige, schräge oder offene Bereiche jeweils den zu beschallenden rechteckigen Bereich auswählen; mehrere Pläne/Ansichten pro Projekt sind möglich.
+
+- **Musik im ganzen Raum:** 2, 4 oder 6 verteilte Lautsprecher. Standardmäßig werden vier Positionen vorgeschlagen. Ausrichtung und Abstrahlwinkel lassen sich einstellen; Lautsprecher können direkt verschoben werden.
+- **Stereo / Heimkino:** 2.0, 2.1, 5.1 oder 7.1. Hörplatz im Plan setzen, Frontwand wählen und Vorschläge verschieben. Frontwinkel starten bei ±30°, 5.1-Surrounds bei ±110°, 7.1-Seiten bei ±100° und die hinteren Kanäle bei ±145°.
+- **Export:** „Audioplan speichern“ erzeugt ein PNG mit Positionen. Projekte einschließlich Grundriss und Audioeinstellungen werden mitgespeichert und lassen sich offline sichern/wiederherstellen.
+
+Die grünen Flächen stellen schematische Richtungen dar, keine gemessene oder simulierte Raumabdeckung. Verteilung im ganzen Raum ist ein geometrischer Startvorschlag; Lautsprechermodell, Wände, Türen, Einrichtung, Montagehöhe und Raumakustik müssen bei der tatsächlichen Aufstellung berücksichtigt werden. Insbesondere Subwooferposition und Pegel vor Ort prüfen. Das Programm berechnet weder Schallpegel noch Raummoden und garantiert keine gleichmäßige Lautstärke.
+
+Grundlagen: [Dolby Aufstellung](https://www.dolby.com/about/support/guide/surround-sound-speaker-setup) und [QSC Ausrichtung/Abstrahlung](https://blogs.qsc.com/live-sound/practical-tips-on-loudspeaker-placement-for-live-sound-part-iii/).
+
+Zusätzliche Browsertests: `node scripts/audio-smoke.mjs` und `node scripts/pdf-codecs-smoke.mjs`. Die kleinen PDF-Dateien unter `tests/fixtures` sind synthetische Regressionstestdaten; keine echten Hauspläne.

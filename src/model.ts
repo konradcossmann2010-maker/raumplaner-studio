@@ -34,6 +34,31 @@ export const itemSchema = z.object({
     .max(16 * 1024 * 1024)
     .optional(),
 });
+const unit = z.number().min(0).max(1);
+export const audioSchema = z.object({
+  roomConfirmed: z.boolean().optional(),
+  mode: z.enum(["coverage", "cinema"]),
+  system: z.enum(["2.0", "2.1", "5.1", "7.1"]),
+  count: z.union([z.literal(2), z.literal(4), z.literal(6)]),
+  room: z
+    .object({
+      x: unit,
+      y: unit,
+      width: z.number().min(0.02).max(1),
+      height: z.number().min(0.02).max(1),
+    })
+    .refine(
+      (r) => r.x + r.width <= 1.000001 && r.y + r.height <= 1.000001,
+      "Raum liegt außerhalb des Grundrisses",
+    ),
+  roomWidth: z.number().min(0.5).max(80),
+  roomLength: z.number().min(0.5).max(80),
+  front: z.enum(["top", "bottom", "left", "right"]),
+  listener: z.object({ x: unit, y: unit }),
+  spread: z.number().min(30).max(180),
+  showSpread: z.boolean(),
+  overrides: z.record(z.object({ x: unit, y: unit })).optional(),
+});
 export const projectSchema = z
   .object({
     id,
@@ -59,6 +84,8 @@ export const projectSchema = z
           width: z.number().positive(),
           height: z.number().positive(),
           layers: z.array(layerSchema).max(200),
+          kind: z.enum(["photo", "plan"]).optional(),
+          audio: audioSchema.optional(),
         }),
       )
       .max(30),

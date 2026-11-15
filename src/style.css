@@ -1460,3 +1460,144 @@ small {
 .editor-tools .toolhint {
   display: none;
 }
+
+.scene-upload-buttons {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.scene-upload-buttons button {
+  font-size: 11px;
+}
+.plan-editor {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 18px;
+}
+.audio-intro {
+  background: #edf2e7;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.audio-intro p,
+.audio-advice p {
+  font-size: 11px;
+  margin-top: 7px;
+  line-height: 1.7;
+  color: #76816e;
+}
+.plan-tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.plan-tools button {
+  font-size: 10px;
+  padding: 8px;
+}
+.plan-tools .active {
+  background: #e4ecdc;
+  border-color: #90a47f;
+}
+.plan-instruction {
+  font-size: 11px;
+  color: #7b8c70;
+  margin: 10px 0;
+}
+.plan-canvas {
+  width: 100%;
+  height: auto;
+  max-height: 75vh;
+  touch-action: none;
+  background: #f5f6ef;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  user-select: none;
+}
+.audio-marker {
+  cursor: grab;
+}
+.audio-marker:active {
+  cursor: grabbing;
+}
+.audio-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  margin-top: 18px;
+}
+.audio-advice {
+  border-top: 1px solid var(--line);
+  padding-top: 17px;
+  margin-top: 20px;
+}
+.audio-advice > strong {
+  font-size: 13px;
+}
+.audio-advice small {
+  color: #8b977f;
+  display: block;
+  margin-top: 14px;
+}
+.audio-position-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+.audio-position-list span {
+  padding: 7px;
+  border-radius: 5px;
+  background: #f2f4ed;
+  font-size: 10px;
+}
+.pdf-preview {
+  text-align: center;
+  background: #eeefe7;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+.pdf-preview canvas {
+  max-width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+}
+.pdf-import p {
+  font-size: 12px;
+}
+.pdf-import label {
+  margin-top: 15px;
+}
+.pdf-import footer {
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .scene-upload-buttons {
+    justify-content: flex-end;
+    max-width: 190px;
+  }
+  .scene-upload-buttons button {
+    font-size: 9px;
+    padding: 6px;
+  }
+  .plan-editor {
+    padding: 12px;
+  }
+  .audio-settings {
+    gap: 9px;
+  }
+  .audio-settings label {
+    font-size: 10px;
+  }
+  .plan-canvas {
+    max-height: none;
+  }
+  .audio-intro p,
+  .audio-advice p {
+    font-size: 10px;
+  }
+}
