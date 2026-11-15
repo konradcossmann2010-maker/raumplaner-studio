@@ -1,6 +1,76 @@
 import { z } from "zod";
 const money = z.number().int().min(0).max(1000000000).nullable();
 const id = z.string().min(1).max(100);
+export const dimensionsSchema = z.object({
+  width: z.number().min(0.01).max(80),
+  height: z.number().min(0.01).max(20),
+  depth: z.number().min(0.01).max(80),
+});
+export const roomObjectSchema = z.object({
+  id,
+  kind: z.enum(["furniture", "speaker", "sub"]),
+  itemId: id.optional(),
+  label: z.string().max(200).optional(),
+  x: z.number().min(-1000).max(1000),
+  y: z.number().min(-100).max(100),
+  z: z.number().min(-1000).max(1000),
+  rotation: z.number().min(-36000).max(36000),
+  dimensions: dimensionsSchema.optional(),
+});
+export const room3DSchema = z
+  .object({
+    width: z.number().min(0.5).max(80),
+    length: z.number().min(0.5).max(80),
+    height: z.number().min(0.5).max(20),
+    confirmed: z.boolean(),
+    slopes: z
+      .array(
+        z.object({
+          id,
+          wall: z.enum(["left", "right", "front", "back"]),
+          knee: z.number().min(0).max(20),
+          run: z.number().min(0.01).max(80),
+          source: z.enum(["manual", "photo-confirmed"]).optional(),
+          photoId: id.optional(),
+        }),
+      )
+      .max(8),
+    objects: z.array(roomObjectSchema).max(100),
+    audioSystem: z.enum(["coverage", "2.0", "2.1", "5.1", "7.1"]),
+    audioCount: z.union([z.literal(2), z.literal(4), z.literal(6)]),
+  })
+  .superRefine((r, ctx) => {
+    for (const s of r.slopes)
+      if (
+        s.knee > r.height ||
+        s.run > (s.wall === "left" || s.wall === "right" ? r.width : r.length)
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Dachschrägenmaße passen nicht zu den Raummaßen",
+        });
+    if (new Set(r.slopes.map((s) => s.wall)).size !== r.slopes.length)
+      ctx.addIssue({
+        code: "custom",
+        message: "Pro Wand ist eine Dachschräge möglich",
+      });
+    for (const [a, b, extent] of [
+      ["left", "right", r.width],
+      ["front", "back", r.length],
+    ] as const) {
+      const sum =
+        (r.slopes.find((s) => s.wall === a)?.run ?? 0) +
+        (r.slopes.find((s) => s.wall === b)?.run ?? 0);
+      if (sum > extent + 0.0001)
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Gegenüberliegende Dachschrägen erreichen mit diesen Tiefen die maximale Raumhöhe nicht",
+        });
+    }
+    if (new Set(r.objects.map((o) => o.id)).size !== r.objects.length)
+      ctx.addIssue({ code: "custom", message: "Doppelte 3D-Objekt-ID" });
+  });
 export const layerSchema = z.object({
   id,
   itemId: id,
@@ -19,6 +89,7 @@ export const itemSchema = z.object({
   name: z.string().min(1).max(200),
   category: z.string().min(1).max(80),
   price: money,
+  dimensions: dimensionsSchema.optional(),
   quantity: z.number().int().min(1).max(999),
   merchant: z.string().max(200),
   url: z
@@ -64,6 +135,7 @@ export const projectSchema = z
     id,
     name: z.string().min(1).max(120),
     totalBudget: money,
+    room3D: room3DSchema.optional(),
     categories: z.array(z.string().min(1).max(80)).max(50),
     limits: z.record(
       z
@@ -94,6 +166,9 @@ export const projectSchema = z
     const ids = new Set(p.items.map((i) => i.id));
     if (ids.size !== p.items.length)
       ctx.addIssue({ code: "custom", message: "Doppelte Möbel-ID" });
+    for (const o of p.room3D?.objects ?? [])
+      if (o.kind === "furniture" && (!o.itemId || !ids.has(o.itemId)))
+        ctx.addIssue({ code: "custom", message: "3D-Möbelzuordnung fehlt" });
     for (const s of p.scenes)
       for (const l of s.layers)
         if (!ids.has(l.itemId))

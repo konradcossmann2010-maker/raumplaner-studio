@@ -20,12 +20,14 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.0",
+    "three": "^0.187.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261103.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.187.0",
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.25.0",
     "playwright": "^1.65.0",

@@ -28,6 +28,7 @@ import { flushLatest } from "./persistence";
 import Editor from "./Editor";
 import Cutout from "./Cutout";
 import PlanEditor from "./PlanEditor";
+import RoomPlanner from "./RoomPlanner";
 import PdfImport from "./PdfImport";
 import {
   type Project,
@@ -322,6 +323,7 @@ function App() {
     [form, setForm] = useState<Item | null>(null),
     [cutout, setCutout] = useState<Item | null>(null),
     [shopLinks, setShopLinks] = useState<ReturnType<typeof shopSearches>>([]);
+  const [view3D, setView3D] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const planInput = useRef<HTMLInputElement>(null);
   const revision = useRef(0),
@@ -623,6 +625,12 @@ function App() {
     change({
       ...p,
       items: p.items.filter((i) => i.id !== id),
+      room3D: p.room3D
+        ? {
+            ...p.room3D,
+            objects: p.room3D.objects.filter((o) => o.itemId !== id),
+          }
+        : undefined,
       scenes: p.scenes.map((s) => ({
         ...s,
         layers: s.layers.filter((l) => l.itemId !== id),
@@ -892,12 +900,37 @@ function App() {
               Budget
             </button>
           </nav>
-          <main className={"workspace mobile-" + tab}>
+          <main
+            className={
+              "workspace mobile-" + tab + (view3D ? " space-active" : "")
+            }
+          >
             <section className="room-pane">
+              <div className="view-tabs">
+                <button
+                  className={!view3D ? "active" : ""}
+                  onClick={() => setView3D(false)}
+                >
+                  Fotos & Hauspläne
+                </button>
+                <button
+                  className={view3D ? "active" : ""}
+                  onClick={() => {
+                    setView3D(true);
+                    setTab("room");
+                  }}
+                >
+                  3D & Passprüfung
+                </button>
+              </div>
               <div className="section-heading">
                 <div>
                   <h2>
-                    {scene?.kind === "plan" ? "Hausplan & Audio" : "Dein Raum"}
+                    {view3D
+                      ? "3D-Raum & Möbelmaße"
+                      : scene?.kind === "plan"
+                        ? "Hausplan & Audio"
+                        : "Dein Raum"}
                   </h2>
                   <p>Aus Ideen wird ein Zuhause.</p>
                 </div>
@@ -948,7 +981,9 @@ function App() {
                   e.target.value = "";
                 }}
               />
-              {scene?.kind === "plan" ? (
+              {view3D ? (
+                <RoomPlanner project={p} onChange={change} sceneId={sceneId} />
+              ) : scene?.kind === "plan" ? (
                 <PlanEditor
                   key={scene.id}
                   scene={scene}

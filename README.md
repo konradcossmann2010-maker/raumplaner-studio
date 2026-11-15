@@ -78,3 +78,27 @@ Die grünen Flächen stellen schematische Richtungen dar, keine gemessene oder s
 Grundlagen: [Dolby Aufstellung](https://www.dolby.com/about/support/guide/surround-sound-speaker-setup) und [QSC Ausrichtung/Abstrahlung](https://blogs.qsc.com/live-sound/practical-tips-on-loudspeaker-placement-for-live-sound-part-iii/).
 
 Zusätzliche Browsertests: `node scripts/audio-smoke.mjs` und `node scripts/pdf-codecs-smoke.mjs`. Die kleinen PDF-Dateien unter `tests/fixtures` sind synthetische Regressionstestdaten; keine echten Hauspläne.
+
+## Raummaße, 3D und Passprüfung
+
+Über **„3D & Passprüfung“** öffnest du den räumlichen Planer. Bestätige Breite, Länge und maximale Höhe des Raums in Metern. Die zunächst dargestellten Werte sind nur Beispiele. „Möbelauswahl in 3D übernehmen“ legt die Möbelstücke aus deiner Auswahl an; die Menge wird bis zur Grenze von 100 3D-Objekten berücksichtigt.
+
+Wähle ein Objekt und trage seine tatsächliche Breite, Höhe und Tiefe in Zentimetern ein. Die Prüfung berücksichtigt dessen Standort, Drehung, Raumwände, Boden, Decke, bestätigte Dachschrägen und Überschneidungen mit anderen vermessenen Objekten. Ohne bestätigte Raum- oder Objektmaße wird kein positives Prüfergebnis angezeigt.
+
+- Leere Fläche ziehen: Kamera drehen; Mausrad/Zwei-Finger-Geste: zoomen.
+- Objekt anklicken, dann farbige X/Y/Z-Pfeile ziehen oder Zahlenfelder verwenden. Lautsprecher können auch auf eine Montagehöhe über dem Boden gesetzt werden.
+- „Drehen“ aktiviert die Drehhilfe um die Hochachse.
+- „Audio platzieren“ erstellt bewegliche Lautsprecher-Platzhalter. Ihre Maße müssen für eine Passprüfung gemessen und eingetragen werden. Eine bestätigte Audioverteilung aus einem ausgewählten Grundriss kann ebenfalls übernommen werden, wenn die Raummaße übereinstimmen.
+- Grün bedeutet: der vermessene Maßkörper passt am aktuellen Standort. Rot bedeutet: eine Raumgrenze, Dachschräge oder ein anderes vermessenes Objekt wird verletzt. Grau bedeutet: Maße fehlen bzw. sind nicht bestätigt.
+
+Die 3D-Möbel sind vereinfachte Maßkörper mit Produktbild, keine aus Fotos rekonstruierten Möbelmodelle. Ein Stuhl unter einer Tischplatte kann beispielsweise wegen überlappender Maßkörper als Kollision gelten. Türen, Schubladen, Sockelleisten, Transportwege und Aufbauabstände sind nicht modelliert. Es ist keine Einbau- oder Transportgarantie.
+
+### Dachschrägen aus einem Foto vorschlagen
+
+Wähle ein Raumfoto und klicke „Mögliche Dachkanten suchen“. Eine lokale Bildanalyse sucht längere diagonale Kanten. Diese können auch zu Möbeln oder Türrahmen gehören; das Ergebnis ist ausdrücklich ein Vorschlag. Ein einzelnes unkalibriertes Foto liefert keine zuverlässigen metrischen Raum- oder Dachmaße.
+
+Prüfe den markierten Kandidaten und gib die zugehörige Wand, gemessene Kniestockhöhe und horizontale Tiefe bis zur vollen Raumhöhe ein. Erst „Foto-Vorschlag mit Maßen bestätigen“ übernimmt die Schräge in die 3D-Geometrie. Alternativ kannst du die Schräge vollständig manuell eintragen. Pro Wand wird eine Schräge unterstützt; gegenüberliegende Schrägen müssen mit den bestätigten Raummaßen zusammenpassen.
+
+Die Dachflächen werden aus denselben Ebenen berechnet wie die Passprüfung. Damit stimmen auch steile Knicke und Schnittlinien zwischen mehreren Schrägen mit der geometrisch verfügbaren Höhe überein. 3D-Geometrie, Möbelmaße und bestätigte Schrägen werden im Projekt und in Offline-Sicherungen gespeichert. Alle Berechnungen und die Fotoanalyse laufen im Browser, ohne externe API.
+
+Zusätzlicher Browsertest: `node scripts/space-smoke.mjs`. Er prüft eine echte WebGL-Ansicht mit Software-Rendering, gemessene Raum-/Möbelmaße, Dachkanten-Vorschläge, die Passprüfung unter einer Schräge, einen tatsächlichen Mauszug am 3D-Pfeil, Audiohöhe, Speicherung und mobile Breite bei abgeschaltetem Netzwerk.

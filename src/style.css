@@ -1601,3 +1601,273 @@ small {
     font-size: 10px;
   }
 }
+
+.view-tabs {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 20px;
+}
+.view-tabs button {
+  background: transparent;
+  border-color: transparent;
+}
+.view-tabs .active {
+  background: #e5eddc;
+  border-color: #c8d5bc;
+}
+.workspace.space-active {
+  grid-template-columns: 1fr;
+}
+.space-active .furniture-pane {
+  display: none;
+}
+.room-planner {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px;
+}
+.space-intro {
+  padding: 16px;
+  background: #edf2e7;
+  border-radius: 8px;
+}
+.space-intro p,
+.roof-section > p {
+  font-size: 12px;
+  color: #7b8971;
+  margin-top: 8px;
+}
+.room-measures,
+.space-position,
+.object-dimensions,
+.slope-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 19px 0;
+}
+.room-measures > label,
+.space-position > label,
+.object-dimensions > label,
+.slope-inputs > label {
+  flex: 1;
+  min-width: 130px;
+}
+.space-warning,
+.space-message {
+  padding: 13px;
+  border-radius: 7px;
+  background: #fff0d8;
+  color: #815f32;
+  font-size: 12px;
+  margin: 14px 0;
+  line-height: 1.7;
+}
+.space-actions,
+.three-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 17px 0;
+}
+.space-actions button,
+.three-tools button {
+  font-size: 11px;
+}
+.space-actions label {
+  min-width: 130px;
+}
+.three-tools .active {
+  background: #e2ead8;
+}
+.three-tools .cutout-option {
+  margin: 0 0 8px;
+}
+.three-viewport {
+  position: relative;
+  width: 100%;
+  height: 540px;
+  min-height: 330px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-top: 15px;
+  background: #eef1e8;
+}
+.three-viewport canvas {
+  display: block;
+  touch-action: none;
+}
+.three-reset {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  z-index: 2;
+}
+.three-error {
+  padding: 30px;
+  font-size: 13px;
+}
+.fit-legend {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: #7a866e;
+  margin: 15px 0;
+}
+.object-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.object-list button {
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 11px;
+  max-width: 230px;
+  min-width: 130px;
+}
+.object-list .chosen {
+  outline: 2px solid #56794b;
+  outline-offset: 2px;
+}
+.object-list small {
+  font-size: 10px;
+  font-weight: 400;
+}
+.object-list .valid {
+  background: #e7f0df;
+}
+.object-list .invalid {
+  background: #ffede5;
+  border-color: #dfaa93;
+}
+.object-list .unknown {
+  background: #f0f0eb;
+}
+.object-list > p {
+  font-size: 12px;
+  color: #8c9683;
+}
+.object-editor {
+  background: #f8f9f3;
+  padding: 20px;
+  border-radius: 10px;
+}
+.fit-issues {
+  font-size: 12px;
+  color: #a55339;
+  padding-left: 18px;
+}
+.fit-issues li {
+  margin-top: 6px;
+}
+.roof-section {
+  border-top: 1px solid var(--line);
+  margin-top: 26px;
+  padding-top: 24px;
+}
+.roof-slopes {
+  margin: 16px 0;
+}
+.roof-slopes > div {
+  padding: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0f3e9;
+  margin: 7px 0;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.roof-slopes button {
+  padding: 7px;
+}
+.roof-photo {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.roof-photo label {
+  min-width: 200px;
+  flex: 1;
+}
+.roof-candidates {
+  max-height: 420px;
+  width: 100%;
+  height: auto;
+  border-radius: 7px;
+  background: #f4f5ee;
+  margin-bottom: 15px;
+}
+.roof-candidates line {
+  cursor: pointer;
+}
+.room-planner .fineprint {
+  font-size: 11px;
+  color: #85917a;
+  line-height: 1.7;
+  margin: 14px 0;
+}
+.room-planner h3 {
+  font-size: 16px;
+}
+.space-actions button svg {
+  flex-shrink: 0;
+}
+@media (max-width: 760px) {
+  .room-planner {
+    padding: 13px;
+  }
+  .three-viewport {
+    height: 380px;
+  }
+  .room-measures > label,
+  .space-position > label,
+  .object-dimensions > label,
+  .slope-inputs > label {
+    min-width: 110px;
+  }
+  .room-measures button,
+  .object-dimensions button {
+    width: 100%;
+  }
+  .space-actions button {
+    width: 100%;
+  }
+  .space-actions label {
+    flex: 1;
+  }
+  .room-planner .section-heading {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .room-planner input,
+  .room-planner select {
+    padding: 9px;
+  }
+  .roof-photo button {
+    width: 100%;
+  }
+  .view-tabs {
+    gap: 0;
+  }
+  .view-tabs button {
+    font-size: 11px;
+  }
+  .space-active.mobile-furniture .room-pane {
+    display: none;
+  }
+  .space-active.mobile-room .room-pane {
+    display: block;
+  }
+}
