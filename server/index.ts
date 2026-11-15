@@ -1,16 +1,8 @@
 import { projectSchema, newProject, uid, safeUrl } from "../src/model";
-import {
-  publicFetch,
-  bounded,
-  extractProduct,
-  account,
-  provider,
-  searchAllowed,
-} from "./products";
+import { publicFetch, bounded, extractProduct } from "./products";
 export interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;
-  SERPAPI_API_KEY?: string;
   LOCAL_DEV?: string;
 }
 const json = (v: unknown, status = 200) =>
@@ -230,155 +222,16 @@ export async function api(req: Request, env: Env): Promise<Response> {
         ),
       });
     }
-    if (path === "/api/search-status" && method === "GET") {
-      if (!env.SERPAPI_API_KEY) return json({ configured: false });
-      try {
-        const a = await account(env.SERPAPI_API_KEY);
-        return json({
-          configured: true,
-          remaining: a.plan_searches_left,
-          renewal: a.plan_renewal_date,
-          allowed: searchAllowed(a),
-        });
-      } catch {
-        return json({
-          configured: true,
-          allowed: false,
-          error: "Suchdienst nicht erreichbar.",
-        });
-      }
-    }
-    if (
-      (path === "/api/search" || path === "/api/offers") &&
-      method === "POST"
-    ) {
-      const j = await body(req);
-      const params: Record<string, string> =
-        path === "/api/search"
-          ? {
-              engine: "google_shopping",
-              q: String(j.query ?? "").slice(0, 300),
-              gl: "de",
-              hl: "de",
-              google_domain: "google.de",
-            }
-          : {
-              engine: "google_immersive_product",
-              page_token: String(j.token ?? "").slice(0, 12000),
-            };
-      if (path === "/api/search") {
-        if (!params.q.trim()) throw new Error("Bitte Suchbegriff eingeben.");
-        for (const k of ["min_price", "max_price"])
-          if (j[k] != null) {
-            if (!Number.isFinite(j[k]) || j[k] < 0)
-              throw new Error("Preisgrenze ungültig.");
-            params[k] = String(j[k]);
-          }
-        if (
-          j.min_price != null &&
-          j.max_price != null &&
-          j.min_price > j.max_price
-        )
-          throw new Error("Mindestpreis über Höchstpreis.");
-      }
-      const key = JSON.stringify(params);
-      const cached = await env.DB.prepare(
-        "SELECT data FROM search_cache WHERE key=? AND expires>?",
-      )
-        .bind(key, Date.now())
-        .first<any>();
-      if (cached) return json(JSON.parse(cached.data));
-      if (!env.SERPAPI_API_KEY)
-        return json(
-          {
-            error:
-              "Live-Suche noch nicht eingerichtet. Bitte SERPAPI_API_KEY hinterlegen. Eigene Produkte funktionieren bereits.",
-          },
-          503,
-        );
-      const lock = await env.DB.prepare(
-        "INSERT INTO search_locks (owner,expires) VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET expires=excluded.expires WHERE search_locks.expires<?",
-      )
-        .bind("provider", Date.now() + 60000, Date.now())
-        .run();
-      if (!lock.meta.changes)
-        return json(
-          { error: "Eine Suche läuft bereits. Bitte kurz warten." },
-          429,
-        );
-      try {
-        const a = await account(env.SERPAPI_API_KEY);
-        if (!searchAllowed(a))
-          return json(
-            {
-              error:
-                "Gratis-Suche pausiert: Kontingent erschöpft oder kein kostenloser Tarif.",
-            },
-            429,
-          );
-        const r = await provider(env.SERPAPI_API_KEY, params);
-        let result: any;
-        if (path === "/api/search") {
-          const rows = [
-            ...(r.shopping_results ?? []),
-            ...(r.categorized_shopping_results ?? []).flatMap(
-              (c: any) => c.shopping_results ?? [],
-            ),
-          ];
-          const seen = new Set();
-          result = rows
-            .filter((p: any) => {
-              const k = p.product_id ?? p.title;
-              if (seen.has(k)) return false;
-              seen.add(k);
-              return true;
-            })
-            .slice(0, 40)
-            .map((p: any) => ({
-              name: p.title,
-              image: p.thumbnail,
-              price:
-                Number.isFinite(p.extracted_price) &&
-                /€|EUR/.test(p.price ?? "")
-                  ? Math.round(p.extracted_price * 100)
-                  : null,
-              merchant: p.source ?? "",
-              url: p.product_link ?? p.link ?? "",
-              token: p.immersive_product_page_token ?? "",
-              observedAt: new Date().toISOString(),
-            }))
-            .filter(
-              (p: any) =>
-                (j.min_price == null && j.max_price == null) ||
-                (p.price !== null &&
-                  (j.min_price == null || p.price >= j.min_price * 100) &&
-                  (j.max_price == null || p.price <= j.max_price * 100)),
-            );
-        } else {
-          result = (r.product_results?.stores ?? []).map((s: any) => ({
-            name: s.title ?? r.product_results?.title,
-            merchant: s.name,
-            url: s.link,
-            image: r.product_results?.thumbnails?.[0] ?? "",
-            price:
-              Number.isFinite(s.extracted_price) && /€|EUR/.test(s.price ?? "")
-                ? Math.round(s.extracted_price * 100)
-                : null,
-            observedAt: new Date().toISOString(),
-          }));
-        }
-        await env.DB.prepare(
-          "INSERT OR REPLACE INTO search_cache (key,data,expires) VALUES (?,?,?)",
-        )
-          .bind(key, JSON.stringify(result), Date.now() + 3600000)
-          .run();
-        return json(result);
-      } finally {
-        await env.DB.prepare("DELETE FROM search_locks WHERE owner=?")
-          .bind("provider")
-          .run();
-      }
-    }
+    if (path === "/api/search-status")
+      return json({ mode: "shop-links", requiresKey: false });
+    if (path === "/api/search" || path === "/api/offers")
+      return json(
+        {
+          error:
+            "Die Suche erfolgt jetzt direkt über Shop-Links, ohne Suchdienst.",
+        },
+        410,
+      );
     return json({ error: "Nicht gefunden." }, 404);
   } catch (e) {
     return json(

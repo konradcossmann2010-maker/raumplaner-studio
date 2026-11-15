@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { publicUrl, extractProduct, searchAllowed } from "../server/products";
+import { publicUrl, extractProduct } from "../server/products";
 it("rejects private addresses and credentials", () => {
   for (const u of [
     "http://127.0.0.1",
@@ -27,17 +27,6 @@ it("does not fabricate prices from missing or foreign currency offers", () =>
       "https://shop.de",
     ).price,
   ).toBeNull());
-it("stops on exhausted or paid search accounts", () => {
-  expect(searchAllowed({ plan_monthly_price: 0, plan_searches_left: 0 })).toBe(
-    false,
-  );
-  expect(
-    searchAllowed({ plan_monthly_price: 25, plan_searches_left: 100 }),
-  ).toBe(false);
-  expect(searchAllowed({ plan_monthly_price: 0, plan_searches_left: 1 })).toBe(
-    true,
-  );
-});
 it("keeps missing product images empty", () =>
   expect(
     extractProduct("<title>Schrank</title>", "https://shop.de/p").image,

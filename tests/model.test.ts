@@ -70,3 +70,45 @@ describe("budget", () => {
     expect(csv(p)).toContain("'=CMD()");
   });
 });
+it("rejects malformed product URLs from a backup", () => {
+  const p = newProject();
+  p.items = [
+    {
+      id: "a",
+      name: "X",
+      category: "X",
+      price: 1,
+      quantity: 1,
+      merchant: "Shop",
+      url: "not a URL",
+      image: "",
+      observedAt: "",
+    },
+  ];
+  expect(projectSchema.safeParse(p).success).toBe(false);
+});
+it("rejects layers referencing missing furniture", () => {
+  const p = newProject();
+  p.scenes = [
+    {
+      id: "s",
+      name: "Raum",
+      image: "",
+      width: 800,
+      height: 500,
+      layers: [
+        {
+          id: "l",
+          itemId: "missing",
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          rotation: 0,
+          flip: false,
+        },
+      ],
+    },
+  ];
+  expect(projectSchema.safeParse(p).success).toBe(false);
+});

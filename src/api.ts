@@ -1,8 +1,10 @@
+import { isOffline, offlineRequest, offlineImage } from "./offline";
 export async function api<T = any>(
   path: string,
   data?: unknown,
   method?: string,
 ): Promise<T> {
+  if (isOffline) return (await offlineRequest(path, data, method)) as T;
   const r = await fetch("/api/" + path, {
     method: method ?? (data === undefined ? "GET" : "POST"),
     headers: data === undefined ? {} : { "content-type": "application/json" },
@@ -17,6 +19,7 @@ export async function api<T = any>(
   return j;
 }
 export async function upload(file: Blob, project: string) {
+  if (isOffline) return offlineImage(file);
   const r = await fetch("/api/assets?project=" + encodeURIComponent(project), {
     method: "POST",
     headers: { "content-type": file.type },

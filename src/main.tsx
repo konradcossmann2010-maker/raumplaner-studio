@@ -42,6 +42,8 @@ import {
 } from "./model";
 import { api, upload, normalize, download } from "./api";
 import "./style.css";
+import { shopSearches } from "./shops";
+import { isOffline } from "./offline";
 type RecordRow = {
   id: string;
   name: string;
@@ -154,7 +156,7 @@ function ProductForm({
             />
             <button
               type="button"
-              disabled={busy || !item.url}
+              disabled={busy || !item.url || isOffline}
               onClick={async () => {
                 setBusy(true);
                 setError("");
@@ -290,7 +292,7 @@ function App() {
     [searchBusy, setSearchBusy] = useState(false),
     [form, setForm] = useState<Item | null>(null),
     [cutout, setCutout] = useState<Item | null>(null),
-    [searchStatus, setSearchStatus] = useState<any>({ configured: false });
+    [shopLinks, setShopLinks] = useState<ReturnType<typeof shopSearches>>([]);
   const revision = useRef(0),
     latest = useRef<Project | null>(null),
     saved = useRef(""),
@@ -306,9 +308,6 @@ function App() {
   }
   useEffect(() => {
     refresh();
-    api("search-status")
-      .then(setSearchStatus)
-      .catch(() => {});
   }, []);
   const change = (next: Project) => {
     latest.current = next;
@@ -439,7 +438,11 @@ function App() {
     if (file) {
       const n = await normalize(file);
       image = await upload(n.blob, p.id);
-    } else if (image && !image.startsWith("/api/assets/")) {
+    } else if (
+      image &&
+      !image.startsWith("/api/assets/") &&
+      !image.startsWith("data:image/")
+    ) {
       try {
         image = (await api("image-import", { project: p.id, url: image })).url;
       } catch {
@@ -489,50 +492,18 @@ function App() {
     change({ ...p, scenes: p.scenes.map((x) => (x.id === s.id ? s : x)) });
     setTab("room");
   }
-  async function search() {
-    if (!p) return;
-    if (limits.min !== null && limits.max !== null && limits.min > limits.max) {
-      setError("Der Mindestpreis darf nicht über dem Höchstpreis liegen.");
-      return;
-    }
-    setSearchBusy(true);
-    setError("");
+  function search() {
     try {
-      setResults(
-        await api("search", {
-          query: category + " " + query,
-          min_price: limits.min === null ? null : limits.min / 100,
-          max_price: limits.max === null ? null : limits.max / 100,
-        }),
+      setShopLinks(
+        shopSearches(category + " " + query, limits.min, limits.max),
       );
-      api("search-status")
-        .then(setSearchStatus)
-        .catch(() => {});
+      setError("");
     } catch (e) {
       setError((e as Error).message);
-    } finally {
-      setSearchBusy(false);
     }
   }
-  async function choose(r: any) {
-    setSearchBusy(true);
-    setError("");
-    try {
-      if (r.token) {
-        const offers = await api("offers", { token: r.token });
-        if (offers.length) {
-          setResults(
-            offers.map((o: any) => ({ ...o, image: r.image || o.image })),
-          );
-          return;
-        }
-      }
-      setForm({ ...blankItem(category), ...r, id: uid() });
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSearchBusy(false);
-    }
+  function choose(r: any) {
+    setForm({ ...blankItem(category), ...r, id: uid() });
   }
   function removeItem(id: string) {
     if (
@@ -575,7 +546,7 @@ function App() {
         <span className="header-note">Ein neuer Blick auf dein Zuhause.</span>
         <span className="private">
           <span className="dot" />
-          Dein privates Studio
+          {isOffline ? "Lokal auf deinem Gerät" : "Dein privates Studio"}
         </span>
       </header>
       {error && (
@@ -600,6 +571,58 @@ function App() {
             <br />
             Mit echten Produkten und einem Budget, das zu dir passt.
           </p>
+          {isOffline && (
+            <div className="offline-notice">
+              <strong>Diese Version speichert auf diesem Gerät.</strong>
+              <p>
+                Für einen Gerätewechsel oder als Sicherung kannst du dein
+                Raumprojekt mit Fotos als Datei exportieren und hier wieder
+                öffnen.
+              </p>
+              <label className="button">
+                Projektdatei öffnen
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    try {
+                      if (f.size > 100 * 1024 * 1024)
+                        throw new Error("Projektdatei zu groß.");
+                      const imported = projectSchema.parse(
+                        JSON.parse(await f.text()),
+                      );
+                      for (const image of [
+                        ...imported.items.map((i) => i.image),
+                        ...imported.scenes.map((s) => s.image),
+                      ])
+                        if (
+                          image &&
+                          !/^data:image\/(png|jpeg|webp);base64,/.test(image)
+                        )
+                          throw new Error(
+                            "Die Datei enthält keine eingebetteten Bilder. Bitte eine Offline-Sicherung öffnen.",
+                          );
+                      const fresh = await api("projects", {});
+                      imported.id = fresh.project.id;
+                      await api(
+                        "projects/" + imported.id,
+                        { project: imported, revision: fresh.revision },
+                        "PUT",
+                      );
+                      await load(imported.id);
+                      refresh();
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          )}
           <div className="project-grid">
             <button className="new-project" disabled={busy} onClick={create}>
               <span>
@@ -684,6 +707,19 @@ function App() {
               </div>
             </div>
             <div className="save-state">
+              <button
+                style={{ display: isOffline ? "inline-flex" : "none" }}
+                title="Raum mit Fotos als Datei sichern"
+                onClick={() =>
+                  download(
+                    new Blob([JSON.stringify(p)], { type: "application/json" }),
+                    "Raumplaner-Projekt.json",
+                  )
+                }
+              >
+                <Download size={15} />
+                Sicherung
+              </button>
               <Cloud size={16} />
               {status}
               <button
@@ -929,7 +965,7 @@ function App() {
                   </div>
                   <button
                     className="primary full"
-                    disabled={searchBusy || !searchStatus.allowed}
+                    disabled={false}
                     onClick={search}
                   >
                     {searchBusy ? (
@@ -940,33 +976,31 @@ function App() {
                     Möbel suchen
                   </button>
                   <div className="search-info">
-                    {!searchStatus.configured ? (
-                      <>
-                        <SlidersHorizontal size={15} />
-                        <span>
-                          Live-Suche vorbereiten:{" "}
-                          <a
-                            href="#setup"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              alert(
-                                "Für die Live-Suche einen kostenlosen SerpApi-Zugang anlegen und SERPAPI_API_KEY in den Sites-Umgebungsvariablen hinterlegen. Der Schlüssel bleibt auf dem Server. Anschließend die App neu laden. Eigene Produkte lassen sich sofort hinzufügen.",
-                              );
-                            }}
-                          >
-                            Suchschlüssel einrichten
-                          </a>
-                        </span>
-                      </>
-                    ) : (
-                      <span>
-                        {searchStatus.allowed
-                          ? `${searchStatus.remaining} kostenlose Abrufe übrig`
-                          : "Gratis-Suche pausiert"}{" "}
-                        · Suche und Angebotsdetails zählen zum Kontingent.
-                      </span>
-                    )}
+                    <span>
+                      Ohne Konto und Suchschlüssel: Öffne eine Shop-Suche,
+                      kopiere den Produktlink und füge dein Möbel hinzu. Preise
+                      und Bilder werden hier nicht automatisch aus den
+                      Suchseiten übernommen.
+                    </span>
                   </div>
+                  {shopLinks.length > 0 && (
+                    <div className="shop-searches">
+                      {shopLinks.map((shop) => (
+                        <a
+                          key={shop.name}
+                          href={shop.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <strong>
+                            {shop.name}
+                            <ExternalLink size={14} />
+                          </strong>
+                          <small>{shop.note}</small>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <button
                     className="add-own full"
                     onClick={() => setForm(blankItem(category))}
@@ -1094,7 +1128,7 @@ function App() {
                           <Trash2 size={15} />
                         </button>
                       </div>
-                      {i.url && (
+                      {safeUrl(i.url) && (
                         <a
                           className="shop-link"
                           href={safeUrl(i.url)}
@@ -1259,7 +1293,18 @@ function App() {
       <footer className="app-footer">
         <span>RAUMPLANER STUDIO</span>
         <span>Für Räume mit Persönlichkeit.</span>
-        <span>Manuelle Vorschau · Preise im Shop prüfen</span>
+        <a
+          href="/raumplaner-offline.html"
+          download="Raumplaner-Offline.html"
+          style={{ display: isOffline ? "none" : "inline" }}
+        >
+          Offline-Version herunterladen
+        </a>
+        <span>
+          {isOffline
+            ? "Lokal gespeichert · regelmäßig sichern"
+            : "Manuelle Vorschau · Preise im Shop prüfen"}
+        </span>
       </footer>
     </>
   );

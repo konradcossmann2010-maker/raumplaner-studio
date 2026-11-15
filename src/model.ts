@@ -18,38 +18,51 @@ export const itemSchema = z.object({
   price: money,
   quantity: z.number().int().min(1).max(999),
   merchant: z.string().max(200),
-  url: z.string().max(4000),
-  image: z.string().max(4000),
+  url: z
+    .string()
+    .max(4000)
+    .refine((v) => !v || !!safeUrl(v), "Ungültiger Produktlink"),
+  image: z.string().max(16 * 1024 * 1024),
   observedAt: z.string().max(100),
 });
-export const projectSchema = z.object({
-  id,
-  name: z.string().min(1).max(120),
-  totalBudget: money,
-  categories: z.array(z.string().min(1).max(80)).max(50),
-  limits: z.record(
-    z
-      .object({ min: money, max: money, cap: money })
-      .refine(
-        (v) => v.min === null || v.max === null || v.min <= v.max,
-        "Mindestpreis über Höchstpreis",
-      ),
-  ),
-  shipping: z.record(money),
-  items: z.array(itemSchema).max(200),
-  scenes: z
-    .array(
-      z.object({
-        id,
-        name: z.string().max(120),
-        image: z.string(),
-        width: z.number().positive(),
-        height: z.number().positive(),
-        layers: z.array(layerSchema).max(200),
-      }),
-    )
-    .max(30),
-});
+export const projectSchema = z
+  .object({
+    id,
+    name: z.string().min(1).max(120),
+    totalBudget: money,
+    categories: z.array(z.string().min(1).max(80)).max(50),
+    limits: z.record(
+      z
+        .object({ min: money, max: money, cap: money })
+        .refine(
+          (v) => v.min === null || v.max === null || v.min <= v.max,
+          "Mindestpreis über Höchstpreis",
+        ),
+    ),
+    shipping: z.record(money),
+    items: z.array(itemSchema).max(200),
+    scenes: z
+      .array(
+        z.object({
+          id,
+          name: z.string().max(120),
+          image: z.string(),
+          width: z.number().positive(),
+          height: z.number().positive(),
+          layers: z.array(layerSchema).max(200),
+        }),
+      )
+      .max(30),
+  })
+  .superRefine((p, ctx) => {
+    const ids = new Set(p.items.map((i) => i.id));
+    if (ids.size !== p.items.length)
+      ctx.addIssue({ code: "custom", message: "Doppelte Möbel-ID" });
+    for (const s of p.scenes)
+      for (const l of s.layers)
+        if (!ids.has(l.itemId))
+          ctx.addIssue({ code: "custom", message: "Möbelzuordnung fehlt" });
+  });
 export type Project = z.infer<typeof projectSchema>;
 export type Item = z.infer<typeof itemSchema>;
 export type Layer = z.infer<typeof layerSchema>;

@@ -149,27 +149,3 @@ export function extractProduct(html: string, url: string) {
     observedAt: new Date().toISOString(),
   };
 }
-export function searchAllowed(a: any) {
-  return a.plan_monthly_price === 0 && a.plan_searches_left > 0;
-}
-export async function account(key: string) {
-  const r = await fetch(
-    "https://serpapi.com/account.json?api_key=" + encodeURIComponent(key),
-    { signal: AbortSignal.timeout(12000) },
-  );
-  if (!r.ok)
-    throw new Error("Suchschlüssel ungültig oder Suchdienst nicht erreichbar.");
-  return (await r.json()) as any;
-}
-export async function provider(key: string, params: Record<string, string>) {
-  const q = new URLSearchParams({ ...params, api_key: key });
-  const r = await fetch("https://serpapi.com/search.json?" + q, {
-    signal: AbortSignal.timeout(25000),
-  });
-  const j: any = await r.json();
-  if (!r.ok || j.error)
-    throw new Error(
-      "Suche derzeit nicht verfügbar. Kontingent und Suchschlüssel prüfen.",
-    );
-  return j;
-}
