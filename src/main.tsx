@@ -234,6 +234,14 @@ function ProductForm({
                 onChange={(e) => edit({ name: e.target.value })}
               />
             </label>
+            <label className="cutout-option">
+              <input
+                type="checkbox"
+                checked={!!item.owned}
+                onChange={(e) => edit({ owned: e.target.checked })}
+              />{" "}
+              Bereits vorhanden (Bestand, keine Kaufkosten)
+            </label>
             <label>
               Kategorie
               <select
@@ -1299,7 +1307,11 @@ function App() {
                             {i.category} · {i.merchant}
                           </small>
                           <h3>{i.name}</h3>
-                          <strong>{euro(i.price)}</strong>
+                          <strong>
+                            {i.owned
+                              ? "Bestand · keine Kaufkosten"
+                              : euro(i.price)}
+                          </strong>
                           <span className="quantity"> × {i.quantity}</span>
                         </div>
                       </div>

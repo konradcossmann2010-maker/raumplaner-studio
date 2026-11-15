@@ -90,6 +90,7 @@ export const itemSchema = z.object({
   category: z.string().min(1).max(80),
   price: money,
   dimensions: dimensionsSchema.optional(),
+  owned: z.boolean().optional(),
   quantity: z.number().int().min(1).max(999),
   merchant: z.string().max(200),
   url: z
@@ -239,6 +240,7 @@ export function budget(p: Project) {
   let complete = true;
   const merchants = new Set<string>();
   for (const i of p.items) {
+    if (i.owned) continue;
     if (i.price === null) complete = false;
     goods += (i.price ?? 0) * i.quantity;
     categories[i.category] =
@@ -279,15 +281,17 @@ export function csv(p: Project) {
         "Kauflink",
         "Preisstand",
       ],
-      ...p.items.map((i) => [
-        i.name,
-        i.category,
-        i.quantity,
-        i.price === null ? "" : (i.price / 100).toFixed(2),
-        i.merchant,
-        i.url,
-        i.observedAt,
-      ]),
+      ...p.items
+        .filter((i) => !i.owned)
+        .map((i) => [
+          i.name,
+          i.category,
+          i.quantity,
+          i.price === null ? "" : (i.price / 100).toFixed(2),
+          i.merchant,
+          i.url,
+          i.observedAt,
+        ]),
     ]
       .map((r) => r.map(cell).join(";"))
       .join("\r\n")

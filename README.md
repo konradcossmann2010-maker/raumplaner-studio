@@ -108,3 +108,11 @@ Zusätzlicher Browsertest: `node scripts/space-smoke.mjs`. Er prüft eine echte 
 Oben im Projekt lassen sich Möbelstil und gewünschte Möbelarten auswählen. Die Auswahl wird im Projekt gespeichert; die Suchknöpfe wählen die jeweilige Kategorie und der Stil ergänzt die Shop-Suchlinks. Bestehende Produkte werden nicht automatisch umgefärbt oder entfernt.
 
 In der Möbelauswahl öffnet „In 3D bewegen“ das Produkt auch ohne Raumfoto im 3D-Raum. Bereits platzierte Produkte werden dabei nicht doppelt eingefügt. Mit „Direkt am Möbel ziehen“ lassen sich Möbel oder Lautsprecher mit Maus oder Finger auf der horizontalen Ebene verschieben; ihre Höhe bleibt erhalten. Die farbigen Achsen dienen weiterhin zum Bewegen in allen drei Richtungen, der Drehmodus zum Drehen. Die Passprüfung wird nach dem Loslassen aktualisiert und die Position automatisch gespeichert. Ohne Produktmaße bleibt die Darstellung ein Platzhalter.
+
+### Grundriss und Bestand
+
+Unter „3D & Passprüfung“ öffnet „Grundriss aus Maßen“ eine maßstäbliche Draufsicht derselben Objekte. Möbel und Lautsprecher lassen sich direkt ziehen oder nach Auswahl mit den Pfeiltasten um 5 cm versetzen. Die Farben zeigen die gemeinsame Passprüfung; gestrichelte Linien zeigen das Ende einer Dachschräge. Maße, Höhe und Drehung werden in den Objektfeldern eingestellt. Die Raummaße müssen weiterhin bestätigt werden.
+
+Im Möbel-Formular markiert „Bereits vorhanden“ einen Bestandsgegenstand. Dieser bleibt in der Planung und Passprüfung, verursacht aber keine Kauf- oder Versandkosten und entfällt aus der CSV-Einkaufsliste. Der Originalpreis bleibt gespeichert, wenn die Kennzeichnung später entfernt wird.
+
+Die Ergänzungen entstanden nach einem [Vergleich mit der verlinkten Referenz](docs/reference-comparison.md).

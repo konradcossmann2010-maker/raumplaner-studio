@@ -39,6 +39,33 @@ export function shopSearches(
       note: "Preisfilter bei Bedarf im Shop setzen",
     },
     {
+      name: "home24",
+      url: "https://www.home24.de/suche/?query=" + encodeURIComponent(q),
+      note: "Preisfilter im Shop setzen",
+    },
+    {
+      name: "Wayfair",
+      url:
+        "https://www.wayfair.de/keyword.php?keyword=" + encodeURIComponent(q),
+      note: "Verfügbarkeit und Preise im Shop prüfen",
+    },
+    {
+      name: "eBay",
+      url:
+        "https://www.ebay.de/sch/i.html?_nkw=" +
+        encodeURIComponent(q) +
+        (min !== null ? "&_udlo=" + min / 100 : "") +
+        (max !== null ? "&_udhi=" + max / 100 : ""),
+      note: "Neu und gebraucht, mit Preisbereich",
+    },
+    {
+      name: "Kleinanzeigen",
+      url:
+        "https://www.kleinanzeigen.de/s-suchanfrage.html?keywords=" +
+        encodeURIComponent(q),
+      note: "Gebrauchte Möbel; Preisfilter und Abholort dort setzen",
+    },
+    {
       name: "Amazon",
       url: amazon.href,
       note: "Mit Suchbegriff und Preisbereich",

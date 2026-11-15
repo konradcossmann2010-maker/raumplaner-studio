@@ -22,6 +22,7 @@ import {
 import { defaultAudio, recommendSpeakers } from "./audio";
 import { roofCandidates, type EdgeCandidate } from "./roof-edges";
 import ThreeRoom from "./ThreeRoom";
+import TopRoom from "./TopRoom";
 export default function RoomPlanner({
   project,
   onChange,
@@ -33,6 +34,7 @@ export default function RoomPlanner({
 }) {
   const room = project.room3D ?? defaultRoom(),
     [selected, setSelected] = useState(""),
+    [topView, setTopView] = useState(false),
     [mode, setMode] = useState<"translate" | "rotate" | "drag">("translate"),
     [showRoof, setShowRoof] = useState(true),
     [error, setError] = useState(""),
@@ -317,6 +319,20 @@ export default function RoomPlanner({
           </button>
         )}
       </div>
+      <div className="view-tabs">
+        <button
+          className={!topView ? "active" : ""}
+          onClick={() => setTopView(false)}
+        >
+          3D-Ansicht
+        </button>
+        <button
+          className={topView ? "active" : ""}
+          onClick={() => setTopView(true)}
+        >
+          Grundriss aus Maßen
+        </button>
+      </div>
       <div className="three-tools">
         <button
           className={mode === "drag" ? "active" : ""}
@@ -351,18 +367,31 @@ export default function RoomPlanner({
         verwenden. Leere Fläche ziehen: Kamera drehen. Mausrad oder zwei Finger:
         zoomen. Positionen lassen sich auch unten als Zahlen eingeben.
       </p>
-      <ThreeRoom
-        room={room}
-        items={project.items}
-        selected={selected}
-        onSelect={setSelected}
-        onMove={(id, point) => {
-          const o = room.objects.find((o) => o.id === id);
-          if (o) edit(o, point);
-        }}
-        mode={mode}
-        showRoof={showRoof}
-      />
+      {topView ? (
+        <TopRoom
+          room={room}
+          items={project.items}
+          selected={selected}
+          onSelect={setSelected}
+          onMove={(id, point) => {
+            const o = room.objects.find((o) => o.id === id);
+            if (o) edit(o, point);
+          }}
+        />
+      ) : (
+        <ThreeRoom
+          room={room}
+          items={project.items}
+          selected={selected}
+          onSelect={setSelected}
+          onMove={(id, point) => {
+            const o = room.objects.find((o) => o.id === id);
+            if (o) edit(o, point);
+          }}
+          mode={mode}
+          showRoof={showRoof}
+        />
+      )}
       <div className="fit-legend">
         <span>Grün: geprüfter Maßkörper passt am Standort</span>
         <span>Rot: Kollision oder Raumgrenze</span>

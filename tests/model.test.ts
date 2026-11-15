@@ -112,3 +112,36 @@ it("rejects layers referencing missing furniture", () => {
   ];
   expect(projectSchema.safeParse(p).success).toBe(false);
 });
+it("keeps owned furniture in the plan but excludes its price and shipping from purchases", () => {
+  const p = newProject();
+  const base = {
+    id: "owned",
+    name: "Bett",
+    category: "Bett",
+    price: null,
+    quantity: 1,
+    merchant: "Alt",
+    url: "",
+    image: "",
+    observedAt: "",
+  };
+  p.items = [
+    { ...base, owned: true },
+    {
+      ...base,
+      id: "new",
+      name: "Schrank",
+      category: "Schrank",
+      merchant: "Shop",
+      price: 20000,
+    },
+  ];
+  p.shipping = { Alt: 9000, Shop: 1000 };
+  expect(budget(p)).toMatchObject({
+    total: 21000,
+    complete: true,
+    merchants: ["Shop"],
+  });
+  expect(csv(p)).not.toContain('"Bett"');
+  expect(projectSchema.parse(p).items[0].owned).toBe(true);
+});
