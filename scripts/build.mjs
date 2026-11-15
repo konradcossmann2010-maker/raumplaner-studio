@@ -84,7 +84,8 @@ const offlineHTML =
   codecLicenses.join("\n").replaceAll("--", "—") +
   " --></body></html>";
 await writeFile("dist/raumplaner-offline.html", offlineHTML);
-const entry = `import {api} from './server/index.ts'; const files={'/app.js':${JSON.stringify(js)},'/app.css':${JSON.stringify(css)},'/raumplaner-offline.html':${JSON.stringify(offlineHTML)}};export default {async fetch(request,env){const u=new URL(request.url);if(u.pathname.startsWith('/api/'))return api(request,env);if(files[u.pathname])return new Response(files[u.pathname],{headers:{'content-type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.html')?'text/html; charset=utf-8':'text/css','cache-control':'no-cache','x-content-type-options':'nosniff'}});return new Response(${JSON.stringify(html)},{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}})}}`;
+const sharedHTML = await readFile("public/raumplaner-geteilt.html", "utf8");
+const entry = `import {api} from './server/index.ts'; const files={'/geteilt.html':${JSON.stringify(sharedHTML)},'/app.js':${JSON.stringify(js)},'/app.css':${JSON.stringify(css)},'/raumplaner-offline.html':${JSON.stringify(offlineHTML)}};export default {async fetch(request,env){const u=new URL(request.url);if(u.pathname.startsWith('/api/'))return api(request,env);if(files[u.pathname])return new Response(files[u.pathname],{headers:{'content-type':u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.html')?'text/html; charset=utf-8':'text/css','cache-control':'no-cache','x-content-type-options':'nosniff'}});return new Response(${JSON.stringify(html)},{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}})}}`;
 await build({
   stdin: { contents: entry, resolveDir: process.cwd(), sourcefile: "entry.ts" },
   bundle: true,
