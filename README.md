@@ -131,4 +131,4 @@ Auch ohne Produktbild kann ein Möbel über „In Raum einfügen“ im Foto plat
 
 ### Geteilte HTML-Version direkt öffnen
 
-`/geteilt.html` stellt die eigenständige geteilte Version aus `wnecossmann/raumplaner-studio` als Webseite bereit (eingebundener Stand: `5060182dff59462898adb7b2561474f9b770de32`). Der Quellstand liegt in `public/raumplaner-geteilt.html`. Die Datei wird mit dem Worker ausgeliefert, ohne Download-Zwang. Ihre Räume werden lokal im Browser gespeichert. Die ursprüngliche App bleibt unter den bisherigen Adressen erreichbar. Änderungen der geteilten Quelle werden bewusst durch Aktualisieren dieser Datei übernommen.
+`/geteilt.html` stellt die eigenständige geteilte Version aus `wnecossmann/raumplaner-studio` als Webseite bereit (eingebundener Stand: `66c35f36a2427a0b84027f2f07043c6230fdcbca`). Der Quellstand liegt in `public/raumplaner-geteilt.html`. Die Datei wird mit dem Worker ausgeliefert, ohne Download-Zwang. Ihre Räume werden lokal im Browser gespeichert. Die ursprüngliche App bleibt unter den bisherigen Adressen erreichbar. Änderungen der geteilten Quelle werden bewusst durch Aktualisieren dieser Datei übernommen.
