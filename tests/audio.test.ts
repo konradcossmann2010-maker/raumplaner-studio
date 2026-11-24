@@ -59,3 +59,39 @@ it("round-trips marked room coordinates for every front wall", () => {
     expect(local.y).toBeCloseTo(0.7);
   }
 });
+it("puts desk speakers on a circle at the chosen listening distance", () => {
+  const a = {
+    ...defaultAudio(),
+    mode: "cinema" as const,
+    system: "2.0" as const,
+    roomWidth: 3.5,
+    roomLength: 4.5,
+    listener: { x: 0.5, y: 0.6 },
+  };
+  const meters = (p: { x: number; y: number }) =>
+    Math.hypot(
+      (p.x - a.listener.x) * a.roomWidth,
+      (p.y - a.listener.y) * a.roomLength,
+    );
+  const wall = recommendSpeakers(a);
+  const desk = recommendSpeakers({ ...a, distance: 1.2 });
+  expect(desk).toHaveLength(2);
+  for (const p of desk) {
+    expect(meters(p)).toBeCloseTo(1.2);
+    const dx = (p.x - a.listener.x) * a.roomWidth,
+      dy = (p.y - a.listener.y) * a.roomLength;
+    expect(Math.abs((Math.atan2(dx, -dy) * 180) / Math.PI)).toBeCloseTo(30);
+  }
+  // Ohne Abstand stehen sie weiter weg an der Wand; zu großer Abstand endet an der Wand
+  for (const p of wall) expect(meters(p)).toBeGreaterThan(2);
+  expect(recommendSpeakers({ ...a, distance: 20 })).toEqual(wall);
+  // 5.1 mit festem Abstand: alle Lautsprecher außer dem Subwoofer auf demselben Kreis
+  const circle = recommendSpeakers({ ...a, system: "5.1", distance: 1.2 });
+  for (const p of circle.filter((s) => s.kind === "speaker"))
+    expect(meters(p)).toBeCloseTo(1.2);
+  // Passt der Kreis nicht mehr in den Raum, bleibt der Lautsprecher an der Wand
+  const tight = recommendSpeakers({ ...a, system: "5.1", distance: 1.5 });
+  const sl = tight.find((s) => s.id === "SL")!;
+  expect(meters(sl)).toBeLessThan(1.5);
+  expect(sl.x).toBeGreaterThanOrEqual(0);
+});

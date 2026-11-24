@@ -1,0 +1,16 @@
+# Schlägt Updates für Pakete und GitHub Actions als Pull Requests vor.
+# Die automatischen Prüfungen laufen für jeden Vorschlag mit.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      kleine-updates:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

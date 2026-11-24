@@ -445,6 +445,28 @@ export default function PlanEditor({
             </select>
           </label>
         )}
+        {a.mode === "cinema" && (
+          <label>
+            Abstand zum Hörplatz
+            <select
+              aria-label="Abstand zum Hörplatz"
+              value={a.distance ?? ""}
+              onChange={(e) =>
+                reset({
+                  distance: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+            >
+              <option value="">So weit wie möglich (an der Wand)</option>
+              <option value="1">1,0 m – kleiner Schreibtisch</option>
+              <option value="1.2">1,2 m – Schreibtisch (Nahfeld)</option>
+              <option value="1.5">1,5 m – großer Schreibtisch</option>
+              <option value="2">2,0 m</option>
+              <option value="2.5">2,5 m</option>
+              <option value="3">3,0 m – Sofa</option>
+            </select>
+          </label>
+        )}
         <label>
           Raumbreite quer zur Front (m)
           <input
@@ -524,7 +546,7 @@ export default function PlanEditor({
         <p>
           {a.mode === "coverage"
             ? "Verteilte Paare statt nur einer lauten Ecke: richte die Lautsprecher in ihre Raumzone und höre an mehreren Stellen probe. Für Musik auf allen Paaren braucht dein Verstärker einen passenden Mehrkanal-/Multiroom-Betrieb. Mehr Lautsprecher garantieren durch Überlagerungen nicht automatisch besseren Klang."
-            : "Die Frontlautsprecher zielen ungefähr auf ±30° zum Hörplatz. 5.1-Surrounds starten bei ±110°, 7.1-Seiten bei ±100° und hintere Lautsprecher bei ±145°. Der Subwoofer ist nur ein Startpunkt: seine passende Position musst du im Raum testen."}
+            : "Die Frontlautsprecher zielen ungefähr auf ±30° zum Hörplatz. 5.1-Surrounds starten bei ±110°, 7.1-Seiten bei ±100° und hintere Lautsprecher bei ±145°. Der Subwoofer ist nur ein Startpunkt: seine passende Position musst du im Raum testen. Am Schreibtisch „Abstand zum Hörplatz“ auf 1–1,5 m stellen: Dann bilden beide Lautsprecher und dein Kopf ein gleichseitiges Dreieck, die Hochtöner gehören auf Ohrhöhe."}
         </p>
         <p>
           Die Raumgrenzen, Maße und Front gibst du selbst an. Die App erkennt

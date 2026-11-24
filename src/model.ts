@@ -130,6 +130,7 @@ export const audioSchema = z.object({
   spread: z.number().min(30).max(180),
   showSpread: z.boolean(),
   overrides: z.record(z.object({ x: unit, y: unit })).optional(),
+  distance: z.number().min(0.5).max(20).optional(),
 });
 export const projectSchema = z
   .object({
@@ -220,8 +221,51 @@ export const euro = (n: number | null) =>
         style: "currency",
         currency: "EUR",
       }).format(n / 100);
-export const moneyValue = (n: number | null | undefined) =>
-  n == null ? "" : String(n / 100);
+/**
+ * Wert für ein `<input type="number">`. Bewusst eine Zahl statt eines Strings:
+ * React vergleicht bei Zahlenfeldern `"12.0" != 12` (falsch, also gleich) und
+ * lässt die Eingabe in Ruhe. Mit `"12"` als String würde React aus „12,0“
+ * sofort „12“ machen – „199,00“ würde beim Tippen zu 1990 €.
+ */
+export const moneyValue = (n: number | null | undefined): number | "" =>
+  n == null ? "" : n / 100;
+const fieldNames: Record<string, string> = {
+  name: "Name",
+  category: "Kategorie",
+  price: "Preis",
+  quantity: "Anzahl",
+  merchant: "Händler",
+  url: "Produktlink",
+  totalBudget: "Gesamtbudget",
+  limits: "Preisgrenzen",
+  shipping: "Versandkosten",
+  categories: "Kategorien",
+  items: "Möbelauswahl",
+  scenes: "Raumansichten",
+  room3D: "3D-Raum",
+  dimensions: "Maße",
+};
+/**
+ * Macht aus beliebigen Fehlern eine lesbare deutsche Meldung.
+ * Zod-Fehler würden sonst als JSON-Liste mit englischem Text angezeigt.
+ */
+export function readableError(e: unknown): string {
+  if (e instanceof z.ZodError) {
+    const issue = e.issues[0];
+    if (!issue) return "Bitte Eingaben prüfen.";
+    if (issue.code === "custom" && issue.message)
+      return /[.!?]$/.test(issue.message) ? issue.message : issue.message + ".";
+    const field = [...issue.path]
+      .reverse()
+      .map((k) => fieldNames[String(k)])
+      .find(Boolean);
+    return field
+      ? `Bitte Eingaben prüfen: ${field}.`
+      : "Bitte Eingaben prüfen.";
+  }
+  if (e instanceof Error && e.message) return e.message;
+  return "Unbekannter Fehler.";
+}
 export function safeUrl(s: string) {
   try {
     const u = new URL(s);
@@ -287,7 +331,9 @@ export function csv(p: Project) {
           i.name,
           i.category,
           i.quantity,
-          i.price === null ? "" : (i.price / 100).toFixed(2),
+          // Deutsches Excel: Semikolon trennt Spalten, Komma trennt Cent.
+          // Mit Punkt liest es Preise als Datum („1.50“ → Jan 50) oder Text.
+          i.price === null ? "" : (i.price / 100).toFixed(2).replace(".", ","),
           i.merchant,
           i.url,
           i.observedAt,

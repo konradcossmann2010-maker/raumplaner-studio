@@ -1,5 +1,7 @@
 # Raumplaner Studio – ohne externe API-Schlüssel
 
+[![Prüfungen](https://github.com/konradcossmann2010-maker/raumplaner-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcossmann2010-maker/raumplaner-studio/actions/workflows/ci.yml)
+
 Raumfotos hochladen, Möbelbilder manuell platzieren, Kategorien und Preise einstellen und PNG/CSV exportieren. Keine SerpApi, kein kostenpflichtiger Suchdienst, kein zusätzlicher API-Zugang.
 
 ## Sofort starten: einzelne Offline-Datei
@@ -20,11 +22,11 @@ Die Shop-Seiten werden in einem neuen Tab geöffnet. Suchtreffer, Preise und Pro
 
 ## Fotoeditor und Budget
 
-JPG/PNG/WebP bis 10 MB und 20 MP; Arbeitsbilder werden auf 2048 px Kantenlänge verkleinert. Möbel verschieben, skalieren, drehen, spiegeln oder mit Radierer/Zuschnitt bearbeiten. Die Vorschau ist eine Fotomontage.
+JPG/PNG/WebP bis 10 MB und 20 MP; Arbeitsbilder werden auf 2048 px Kantenlänge verkleinert. JPG-Fotos bleiben dabei JPG (deutlich kleinere Dateien und Sicherungen); PNG und WebP werden als PNG gespeichert, damit Transparenz erhalten bleibt. Möbel verschieben, skalieren, drehen, spiegeln oder mit Radierer/Zuschnitt bearbeiten. Die Vorschau ist eine Fotomontage.
 
 Mengen gehören zur Möbelauswahl. Dasselbe Möbel auf mehreren Raumfotos erhöht die Einkaufsmenge nicht. Preisgrenzen pro Stück, Kategoriegesamtbudget und Raumgesamtbudget sind einstellbar. Versandkosten je Händler ergänzen. Unbekannte Kosten bleiben offen. Endpreis und Variante im Shop prüfen.
 
-PNG exportiert die aktuelle Ansicht, CSV die Einkaufsliste mit Kauflinks. Offline-Sicherungen enthalten Bilder und Daten. Online-Projekte werden weiterhin privat auf dem Server gespeichert; der Offline-Modus speichert unabhängig davon auf dem Gerät.
+PNG exportiert die aktuelle Ansicht, CSV die Einkaufsliste mit Kauflinks. Preise stehen dort mit Dezimalkomma (z. B. „12,50“), damit deutsches Excel sie als Zahl liest und nicht als Datum. Offline-Sicherungen enthalten Bilder und Daten. Online-Projekte werden weiterhin privat auf dem Server gespeichert; der Offline-Modus speichert unabhängig davon auf dem Gerät.
 
 ## Entwicklung / eigener Start
 
@@ -48,10 +50,13 @@ Die bestehende private Sites-App nutzt `DB` (D1) und `BUCKET` (R2); Bindungsname
 npm test
 npm run check
 npm run build
-node scripts/offline-smoke.mjs
+npx playwright install chromium   # einmalig
+npm run test:browser              # alle Browsertests ohne Server
 ```
 
-Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Standardpfad für Chromium: `/usr/bin/chromium`.
+Bei jedem Push auf `main` und bei jedem Pull Request laufen diese Prüfungen automatisch über GitHub Actions (`.github/workflows/ci.yml`), zusätzlich der Online-Modus mit lokalem Worker, D1 und R2 (`scripts/smoke.mjs`, `scripts/edge-cases.mjs`). Dependabot schlägt monatlich Paket-Updates vor. Die fertige Offline-Datei liegt dort als Artefakt `raumplaner-offline` zum Herunterladen bereit.
+
+Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Einzelne Tests: `node scripts/browser-tests.mjs offline-smoke price-input-smoke`. Standardmäßig nutzt Playwright sein eigenes Chromium; ein anderes Chromium lässt sich über `CHROMIUM_PATH=/pfad/zu/chromium` wählen.
 
 Mit laufendem lokalem Server prüfen `scripts/smoke.mjs` und `scripts/edge-cases.mjs` zusätzlich den bisherigen Online-Speicherweg. Testbilder und Screenshots liegen in `outputs/` und sind nicht Teil des Quellcodes.
 
@@ -71,6 +76,7 @@ Im Plan markierst du einen rechteckigen Raum innerhalb seiner Wände. Gib die ta
 
 - **Musik im ganzen Raum:** 2, 4 oder 6 verteilte Lautsprecher. Standardmäßig werden vier Positionen vorgeschlagen. Ausrichtung und Abstrahlwinkel lassen sich einstellen; Lautsprecher können direkt verschoben werden.
 - **Stereo / Heimkino:** 2.0, 2.1, 5.1 oder 7.1. Hörplatz im Plan setzen, Frontwand wählen und Vorschläge verschieben. Frontwinkel starten bei ±30°, 5.1-Surrounds bei ±110°, 7.1-Seiten bei ±100° und die hinteren Kanäle bei ±145°.
+- **Abstand zum Hörplatz:** Standardmäßig stehen die Lautsprecher so weit weg wie möglich, also an der Wand. Für den Schreibtisch (Nahfeld) 1,0–1,5 m wählen: Dann stehen beide Boxen mit deinem Kopf im gleichseitigen Dreieck. Bei 5.1/7.1 liegen alle Lautsprecher auf einem Kreis um den Hörplatz; wo der Kreis nicht mehr in den Raum passt, bleibt der Lautsprecher an der Wand.
 - **Export:** „Audioplan speichern“ erzeugt ein PNG mit Positionen. Projekte einschließlich Grundriss und Audioeinstellungen werden mitgespeichert und lassen sich offline sichern/wiederherstellen.
 
 Die grünen Flächen stellen schematische Richtungen dar, keine gemessene oder simulierte Raumabdeckung. Verteilung im ganzen Raum ist ein geometrischer Startvorschlag; Lautsprechermodell, Wände, Türen, Einrichtung, Montagehöhe und Raumakustik müssen bei der tatsächlichen Aufstellung berücksichtigt werden. Insbesondere Subwooferposition und Pegel vor Ort prüfen. Das Programm berechnet weder Schallpegel noch Raummoden und garantiert keine gleichmäßige Lautstärke.

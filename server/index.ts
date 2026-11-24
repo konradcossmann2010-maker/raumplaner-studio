@@ -1,5 +1,6 @@
 import { projectSchema, newProject, uid, safeUrl } from "../src/model";
 import { publicFetch, bounded, extractProduct } from "./products";
+import { HttpError } from "./http-error";
 export interface Env {
   DB: D1Database;
   BUCKET: R2Bucket;
@@ -19,19 +20,58 @@ export function owner(req: Request, env: Env) {
     ? "local-user"
     : req.headers.get("oai-authenticated-user-id");
 }
-async function body(req: Request) {
-  return JSON.parse(
-    new TextDecoder().decode(await bounded(req as any, 1500000)),
-  );
+async function body(req: Request): Promise<Record<string, any>> {
+  let j: unknown;
+  try {
+    j = JSON.parse(
+      new TextDecoder().decode(await bounded(req as any, 1500000)),
+    );
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    throw new HttpError(400, "Ungültige Anfrage.");
+  }
+  if (!j || typeof j !== "object" || Array.isArray(j))
+    throw new HttpError(400, "Ungültige Anfrage.");
+  return j as Record<string, any>;
 }
-async function project(env: Env, id: string, user: string) {
+async function project(env: Env, id: unknown, user: string) {
   const row = await env.DB.prepare(
     "SELECT * FROM projects WHERE id=? AND owner=?",
   )
-    .bind(id, user)
+    .bind(String(id ?? ""), user)
     .first<any>();
-  if (!row) throw new Error("Raum nicht gefunden.");
+  if (!row) throw new HttpError(404, "Raum nicht gefunden.");
   return row;
+}
+/** D1 erlaubt höchstens 100 gebundene Werte pro Abfrage. */
+const IN_CHUNK = 90;
+/** Prüft mit wenigen Abfragen, ob alle Bilder diesem Nutzer und Raum gehören. */
+async function assertOwnImages(
+  env: Env,
+  user: string,
+  pid: string,
+  images: string[],
+) {
+  const ids = new Set<string>();
+  for (const image of images) {
+    const aid = image.replace("/api/assets/", "");
+    if (!aid || image !== "/api/assets/" + aid)
+      throw new HttpError(400, "Bild gehört nicht zu diesem Raum.");
+    ids.add(aid);
+  }
+  const all = [...ids];
+  for (let i = 0; i < all.length; i += IN_CHUNK) {
+    const chunk = all.slice(i, i + IN_CHUNK);
+    const rows = await env.DB.prepare(
+      `SELECT id FROM assets WHERE owner=? AND project_id=? AND id IN (${chunk
+        .map(() => "?")
+        .join(",")})`,
+    )
+      .bind(user, pid, ...chunk)
+      .all<{ id: string }>();
+    if (rows.results.length !== chunk.length)
+      throw new HttpError(400, "Bild gehört nicht zu diesem Raum.");
+  }
 }
 async function asset(
   env: Env,
@@ -41,7 +81,7 @@ async function asset(
   mime: string,
 ) {
   if (!["image/png", "image/jpeg", "image/webp"].includes(mime))
-    throw new Error("Bitte JPG, PNG oder WebP verwenden.");
+    throw new HttpError(415, "Bitte JPG, PNG oder WebP verwenden.");
   const png = data[0] === 137 && data[1] === 80;
   const jpg = data[0] === 255 && data[1] === 216;
   const webp =
@@ -54,7 +94,7 @@ async function asset(
       (mime === "image/webp" && webp)
     )
   )
-    throw new Error("Bildformat ungültig.");
+    throw new HttpError(415, "Bildformat ungültig.");
   const id = uid();
   await env.BUCKET.put(id, data, { httpMetadata: { contentType: mime } });
   await env.DB.prepare(
@@ -103,31 +143,23 @@ export async function api(req: Request, env: Env): Promise<Response> {
         return json({ project: JSON.parse(row.data), revision: row.revision });
       if (method === "PUT") {
         const j = await body(req);
+        if (!Number.isInteger(j.revision) || j.revision < 1)
+          throw new HttpError(400, "Revision fehlt oder ist ungültig.");
         const p = projectSchema.parse(j.project);
         if (p.id !== id)
           return json({ error: "Raum-ID stimmt nicht überein." }, 400);
-        const ids = new Set(p.items.map((i) => i.id));
-        for (const scene of p.scenes)
-          for (const l of scene.layers)
-            if (!ids.has(l.itemId)) throw new Error("Möbelzuordnung fehlt.");
-        for (const image of [
-          ...p.scenes.map((s) => s.image),
-          ...p.items.flatMap((i) => [i.image, i.originalImage ?? ""]),
-        ].filter(Boolean)) {
-          const aid = image.replace("/api/assets/", "");
-          if (
-            image !== "/api/assets/" + aid ||
-            !(await env.DB.prepare(
-              "SELECT id FROM assets WHERE id=? AND owner=? AND project_id=?",
-            )
-              .bind(aid, user, id)
-              .first())
-          )
-            throw new Error("Bild gehört nicht zu diesem Raum.");
-        }
+        await assertOwnImages(
+          env,
+          user,
+          id,
+          [
+            ...p.scenes.map((s) => s.image),
+            ...p.items.flatMap((i) => [i.image, i.originalImage ?? ""]),
+          ].filter(Boolean),
+        );
         for (const i of p.items)
           if (i.url && !safeUrl(i.url))
-            throw new Error("Ungültiger Produktlink.");
+            throw new HttpError(400, "Ungültiger Produktlink.");
         const r = await env.DB.prepare(
           "UPDATE projects SET name=?,data=?,revision=revision+1,updated_at=? WHERE id=? AND owner=? AND revision=?",
         )
@@ -153,7 +185,10 @@ export async function api(req: Request, env: Env): Promise<Response> {
         )
           .bind(id, user)
           .all<{ id: string }>();
-        for (const a of rows.results) await env.BUCKET.delete(a.id);
+        const keys = rows.results.map((a) => a.id);
+        // R2 löscht bis zu 1000 Schlüssel pro Aufruf.
+        for (let i = 0; i < keys.length; i += 1000)
+          await env.BUCKET.delete(keys.slice(i, i + 1000));
         await env.DB.batch([
           env.DB.prepare(
             "DELETE FROM assets WHERE project_id=? AND owner=?",
@@ -165,6 +200,7 @@ export async function api(req: Request, env: Env): Promise<Response> {
         ]);
         return json({ ok: true });
       }
+      return json({ error: "Methode nicht erlaubt." }, 405);
     }
     if (path === "/api/assets" && method === "POST") {
       const pid = url.searchParams.get("project") ?? "";
@@ -207,7 +243,8 @@ export async function api(req: Request, env: Env): Promise<Response> {
     }
     if (path === "/api/image-import" && method === "POST") {
       const j = await body(req);
-      await project(env, j.project, user);
+      const pid = String(j.project ?? "");
+      await project(env, pid, user);
       const { response } = await publicFetch(
         j.url,
         "image/png,image/jpeg,image/webp",
@@ -216,7 +253,7 @@ export async function api(req: Request, env: Env): Promise<Response> {
         url: await asset(
           env,
           user,
-          j.project,
+          pid,
           await bounded(response, 10 * 1024 * 1024),
           response.headers.get("content-type")?.split(";")[0] ?? "",
         ),
@@ -234,16 +271,14 @@ export async function api(req: Request, env: Env): Promise<Response> {
       );
     return json({ error: "Nicht gefunden." }, 404);
   } catch (e) {
+    if (e instanceof HttpError) return json({ error: e.message }, e.status);
+    if (e instanceof Error && e.name === "ZodError")
+      return json({ error: "Bitte Eingaben prüfen." }, 400);
+    // Unerwarteter Fehler (z. B. Datenbank): Details nur ins Log, nicht an den Browser.
+    console.error("API-Fehler", path, e);
     return json(
-      {
-        error:
-          e instanceof Error
-            ? e.name === "ZodError"
-              ? "Bitte Eingaben prüfen."
-              : e.message
-            : "Anfrage fehlgeschlagen.",
-      },
-      400,
+      { error: "Interner Fehler. Bitte später erneut versuchen." },
+      500,
     );
   }
 }

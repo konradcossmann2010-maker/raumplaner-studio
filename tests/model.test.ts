@@ -69,6 +69,24 @@ describe("budget", () => {
     ];
     expect(csv(p)).toContain("'=CMD()");
   });
+  it("writes German decimal commas so Excel does not turn prices into dates", () => {
+    const p = newProject();
+    p.items = [
+      {
+        id: "a",
+        name: "Regal",
+        category: "Regal",
+        price: 1250,
+        quantity: 1,
+        merchant: "Shop",
+        url: "",
+        image: "",
+        observedAt: "",
+      },
+    ];
+    expect(csv(p)).toContain('"12,50"');
+    expect(csv(p)).not.toContain("12.50");
+  });
 });
 it("rejects malformed product URLs from a backup", () => {
   const p = newProject();
