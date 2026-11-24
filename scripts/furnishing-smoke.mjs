@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try {
 const context=await browser.newContext({offline:true,viewport:{width:1400,height:1000}}), page=await context.newPage();
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
