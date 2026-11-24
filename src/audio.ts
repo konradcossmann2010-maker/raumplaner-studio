@@ -11,6 +11,13 @@ export interface AudioSettings {
   spread: number;
   showSpread: boolean;
   overrides?: Record<string, { x: number; y: number }>;
+  /**
+   * Abstand der Lautsprecher zum Hörplatz in Metern, z. B. 1,2 m am
+   * Schreibtisch (Nahfeld). Ohne Angabe stehen sie so weit weg wie möglich,
+   * also an der Wand. Alle Lautsprecher liegen dann auf einem Kreis um den
+   * Hörplatz – so empfiehlt es auch ITU-R BS.775 für 5.1.
+   */
+  distance?: number;
 }
 export interface Speaker {
   x: number;
@@ -109,7 +116,7 @@ export function recommendSpeakers(a: AudioSettings): Speaker[] {
     if (dx < -0.0001) ts.push((margin - x) / dx);
     if (dy > 0.0001) ts.push((a.roomLength - margin - y) / dy);
     if (dy < -0.0001) ts.push((margin - y) / dy);
-    const t = Math.min(...ts.filter((t) => t >= 0));
+    const t = Math.min(...ts.filter((t) => t >= 0), a.distance ?? Infinity);
     add(
       id,
       label,

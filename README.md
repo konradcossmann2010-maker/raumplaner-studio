@@ -26,7 +26,7 @@ JPG/PNG/WebP bis 10 MB und 20 MP; Arbeitsbilder werden auf 2048 px Kantenlänge 
 
 Mengen gehören zur Möbelauswahl. Dasselbe Möbel auf mehreren Raumfotos erhöht die Einkaufsmenge nicht. Preisgrenzen pro Stück, Kategoriegesamtbudget und Raumgesamtbudget sind einstellbar. Versandkosten je Händler ergänzen. Unbekannte Kosten bleiben offen. Endpreis und Variante im Shop prüfen.
 
-PNG exportiert die aktuelle Ansicht, CSV die Einkaufsliste mit Kauflinks. Offline-Sicherungen enthalten Bilder und Daten. Online-Projekte werden weiterhin privat auf dem Server gespeichert; der Offline-Modus speichert unabhängig davon auf dem Gerät.
+PNG exportiert die aktuelle Ansicht, CSV die Einkaufsliste mit Kauflinks. Preise stehen dort mit Dezimalkomma (z. B. „12,50“), damit deutsches Excel sie als Zahl liest und nicht als Datum. Offline-Sicherungen enthalten Bilder und Daten. Online-Projekte werden weiterhin privat auf dem Server gespeichert; der Offline-Modus speichert unabhängig davon auf dem Gerät.
 
 ## Entwicklung / eigener Start
 
@@ -76,6 +76,7 @@ Im Plan markierst du einen rechteckigen Raum innerhalb seiner Wände. Gib die ta
 
 - **Musik im ganzen Raum:** 2, 4 oder 6 verteilte Lautsprecher. Standardmäßig werden vier Positionen vorgeschlagen. Ausrichtung und Abstrahlwinkel lassen sich einstellen; Lautsprecher können direkt verschoben werden.
 - **Stereo / Heimkino:** 2.0, 2.1, 5.1 oder 7.1. Hörplatz im Plan setzen, Frontwand wählen und Vorschläge verschieben. Frontwinkel starten bei ±30°, 5.1-Surrounds bei ±110°, 7.1-Seiten bei ±100° und die hinteren Kanäle bei ±145°.
+- **Abstand zum Hörplatz:** Standardmäßig stehen die Lautsprecher so weit weg wie möglich, also an der Wand. Für den Schreibtisch (Nahfeld) 1,0–1,5 m wählen: Dann stehen beide Boxen mit deinem Kopf im gleichseitigen Dreieck. Bei 5.1/7.1 liegen alle Lautsprecher auf einem Kreis um den Hörplatz; wo der Kreis nicht mehr in den Raum passt, bleibt der Lautsprecher an der Wand.
 - **Export:** „Audioplan speichern“ erzeugt ein PNG mit Positionen. Projekte einschließlich Grundriss und Audioeinstellungen werden mitgespeichert und lassen sich offline sichern/wiederherstellen.
 
 Die grünen Flächen stellen schematische Richtungen dar, keine gemessene oder simulierte Raumabdeckung. Verteilung im ganzen Raum ist ein geometrischer Startvorschlag; Lautsprechermodell, Wände, Türen, Einrichtung, Montagehöhe und Raumakustik müssen bei der tatsächlichen Aufstellung berücksichtigt werden. Insbesondere Subwooferposition und Pegel vor Ort prüfen. Das Programm berechnet weder Schallpegel noch Raummoden und garantiert keine gleichmäßige Lautstärke.

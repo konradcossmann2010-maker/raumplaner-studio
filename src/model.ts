@@ -130,6 +130,7 @@ export const audioSchema = z.object({
   spread: z.number().min(30).max(180),
   showSpread: z.boolean(),
   overrides: z.record(z.object({ x: unit, y: unit })).optional(),
+  distance: z.number().min(0.5).max(20).optional(),
 });
 export const projectSchema = z
   .object({
@@ -330,7 +331,9 @@ export function csv(p: Project) {
           i.name,
           i.category,
           i.quantity,
-          i.price === null ? "" : (i.price / 100).toFixed(2),
+          // Deutsches Excel: Semikolon trennt Spalten, Komma trennt Cent.
+          // Mit Punkt liest es Preise als Datum („1.50“ → Jan 50) oder Text.
+          i.price === null ? "" : (i.price / 100).toFixed(2).replace(".", ","),
           i.merchant,
           i.url,
           i.observedAt,
