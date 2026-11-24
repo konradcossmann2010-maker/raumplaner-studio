@@ -1,14 +1,20 @@
 import ipaddr from "ipaddr.js";
 import { parseHTML } from "linkedom";
-export function publicUrl(s: string) {
-  const u = new URL(s);
+import { HttpError } from "./http-error";
+export function publicUrl(s: unknown) {
+  let u: URL;
+  try {
+    u = new URL(String(s ?? ""));
+  } catch {
+    throw new HttpError(400, "Bitte eine vollständige Webadresse angeben.");
+  }
   if (
     !["https:", "http:"].includes(u.protocol) ||
     u.username ||
     u.password ||
     (u.port && !["443", "80"].includes(u.port))
   )
-    throw new Error("Nur öffentliche Webadressen sind erlaubt.");
+    throw new HttpError(400, "Nur öffentliche Webadressen sind erlaubt.");
   const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (
     !host.includes(".") ||
@@ -16,18 +22,31 @@ export function publicUrl(s: string) {
     host.endsWith(".internal") ||
     host === "localhost"
   )
-    throw new Error("Private Adresse ist nicht erlaubt.");
+    throw new HttpError(400, "Private Adresse ist nicht erlaubt.");
   if (ipaddr.isValid(host) && ipaddr.parse(host).range() !== "unicast")
-    throw new Error("Private Adresse ist nicht erlaubt.");
+    throw new HttpError(400, "Private Adresse ist nicht erlaubt.");
   return u;
 }
-export async function publicFetch(raw: string, accept: string) {
+/** fetch mit verständlicher Meldung bei Zeitüberschreitung oder Netzfehler. */
+async function shopFetch(input: string | URL, init: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch (e) {
+    if (e instanceof Error && e.name === "TimeoutError")
+      throw new HttpError(
+        504,
+        "Der Shop antwortet nicht. Bitte später erneut versuchen.",
+      );
+    throw new HttpError(502, "Der Shop ist gerade nicht erreichbar.");
+  }
+}
+export async function publicFetch(raw: unknown, accept: string) {
   let u = publicUrl(raw);
   for (let n = 0; n < 4; n++) {
     const host = u.hostname.replace(/^\[|\]$/g, "");
     if (!ipaddr.isValid(host)) {
       for (const type of ["A", "AAAA"]) {
-        const dns = await fetch(
+        const dns = await shopFetch(
           "https://cloudflare-dns.com/dns-query?name=" +
             encodeURIComponent(host) +
             "&type=" +
@@ -37,19 +56,20 @@ export async function publicFetch(raw: string, accept: string) {
             signal: AbortSignal.timeout(8000),
           },
         );
-        if (!dns.ok) throw new Error("DNS-Prüfung fehlgeschlagen.");
+        if (!dns.ok) throw new HttpError(502, "DNS-Prüfung fehlgeschlagen.");
         const j: any = await dns.json();
-        if (j.Status !== 0) throw new Error("Adresse nicht erreichbar.");
+        if (j.Status !== 0)
+          throw new HttpError(400, "Adresse nicht erreichbar.");
         for (const a of j.Answer ?? [])
           if (
             [1, 28].includes(a.type) &&
             (!ipaddr.isValid(a.data) ||
               ipaddr.parse(a.data).range() !== "unicast")
           )
-            throw new Error("Private Adresse gesperrt.");
+            throw new HttpError(400, "Private Adresse gesperrt.");
       }
     }
-    const r = await fetch(u, {
+    const r = await shopFetch(u, {
       redirect: "manual",
       headers: { accept },
       signal: AbortSignal.timeout(12000),
@@ -59,18 +79,19 @@ export async function publicFetch(raw: string, accept: string) {
       continue;
     }
     if (!r.ok)
-      throw new Error(
+      throw new HttpError(
+        502,
         "Der Shop erlaubt keinen Abruf. Bitte Angaben selbst ergänzen.",
       );
     return { response: r, url: u.href };
   }
-  throw new Error("Zu viele Weiterleitungen.");
+  throw new HttpError(502, "Zu viele Weiterleitungen.");
 }
 export async function bounded(r: Response, max: number) {
   if (Number(r.headers.get("content-length") ?? 0) > max)
-    throw new Error("Datei zu groß.");
+    throw new HttpError(413, "Datei zu groß.");
   const reader = r.body?.getReader();
-  if (!reader) throw new Error("Leere Antwort.");
+  if (!reader) throw new HttpError(400, "Leere Anfrage oder Antwort.");
   let size = 0;
   const parts: Uint8Array[] = [];
   while (true) {
@@ -79,7 +100,7 @@ export async function bounded(r: Response, max: number) {
     size += value.byteLength;
     if (size > max) {
       await reader.cancel();
-      throw new Error("Datei zu groß.");
+      throw new HttpError(413, "Datei zu groß.");
     }
     parts.push(value);
   }

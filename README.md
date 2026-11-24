@@ -20,7 +20,7 @@ Die Shop-Seiten werden in einem neuen Tab geöffnet. Suchtreffer, Preise und Pro
 
 ## Fotoeditor und Budget
 
-JPG/PNG/WebP bis 10 MB und 20 MP; Arbeitsbilder werden auf 2048 px Kantenlänge verkleinert. Möbel verschieben, skalieren, drehen, spiegeln oder mit Radierer/Zuschnitt bearbeiten. Die Vorschau ist eine Fotomontage.
+JPG/PNG/WebP bis 10 MB und 20 MP; Arbeitsbilder werden auf 2048 px Kantenlänge verkleinert. JPG-Fotos bleiben dabei JPG (deutlich kleinere Dateien und Sicherungen); PNG und WebP werden als PNG gespeichert, damit Transparenz erhalten bleibt. Möbel verschieben, skalieren, drehen, spiegeln oder mit Radierer/Zuschnitt bearbeiten. Die Vorschau ist eine Fotomontage.
 
 Mengen gehören zur Möbelauswahl. Dasselbe Möbel auf mehreren Raumfotos erhöht die Einkaufsmenge nicht. Preisgrenzen pro Stück, Kategoriegesamtbudget und Raumgesamtbudget sind einstellbar. Versandkosten je Händler ergänzen. Unbekannte Kosten bleiben offen. Endpreis und Variante im Shop prüfen.
 
@@ -48,10 +48,13 @@ Die bestehende private Sites-App nutzt `DB` (D1) und `BUCKET` (R2); Bindungsname
 npm test
 npm run check
 npm run build
-node scripts/offline-smoke.mjs
+npx playwright install chromium   # einmalig
+npm run test:browser              # alle Browsertests ohne Server
 ```
 
-Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Standardpfad für Chromium: `/usr/bin/chromium`.
+Bei jedem Push auf `main` und bei jedem Pull Request laufen diese Prüfungen automatisch über GitHub Actions (`.github/workflows/ci.yml`). Die fertige Offline-Datei liegt dort als Artefakt `raumplaner-offline` zum Herunterladen bereit.
+
+Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Einzelne Tests: `node scripts/browser-tests.mjs offline-smoke price-input-smoke`. Standardmäßig nutzt Playwright sein eigenes Chromium; ein anderes Chromium lässt sich über `CHROMIUM_PATH=/pfad/zu/chromium` wählen.
 
 Mit laufendem lokalem Server prüfen `scripts/smoke.mjs` und `scripts/edge-cases.mjs` zusätzlich den bisherigen Online-Speicherweg. Testbilder und Screenshots liegen in `outputs/` und sind nicht Teil des Quellcodes.
 

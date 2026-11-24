@@ -45,6 +45,7 @@ import {
   uid,
   safeUrl,
   projectSchema,
+  readableError,
 } from "./model";
 import { api, upload, normalize, download } from "./api";
 import "./style.css";
@@ -84,6 +85,7 @@ function Price({
         <input
           aria-label={label}
           type="number"
+          inputMode="decimal"
           min="0"
           step=".01"
           value={moneyValue(value)}
@@ -136,7 +138,7 @@ function ProductForm({
             await onSave(item, file, automatic);
             onClose();
           } catch (e) {
-            setError((e as Error).message);
+            setError(readableError(e));
           } finally {
             setBusy(false);
           }
@@ -170,9 +172,18 @@ function ProductForm({
                 setError("");
                 try {
                   const p = await api("import", { url: item.url });
-                  edit({ ...p, name: p.name || item.name });
+                  // Nur übernehmen, was der Shop wirklich liefert –
+                  // vorhandene Angaben nicht mit leeren Werten überschreiben.
+                  edit({
+                    name: p.name || item.name,
+                    price: p.price ?? item.price,
+                    image: p.image || item.image,
+                    url: p.url || item.url,
+                    merchant: p.merchant || item.merchant,
+                    observedAt: p.observedAt || item.observedAt,
+                  });
                 } catch (e) {
-                  setError((e as Error).message);
+                  setError(readableError(e));
                 } finally {
                   setBusy(false);
                 }
@@ -326,11 +337,9 @@ function App() {
     [panel, setPanel] = useState("discover"),
     [category, setCategory] = useState("Kleiderschrank"),
     [query, setQuery] = useState("Schwarz Eiche"),
-    [results, setResults] = useState<any[]>([]),
     [status, setStatus] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [searchBusy, setSearchBusy] = useState(false),
     [form, setForm] = useState<Item | null>(null),
     [cutout, setCutout] = useState<Item | null>(null),
     [shopLinks, setShopLinks] = useState<ReturnType<typeof shopSearches>>([]);
@@ -347,7 +356,7 @@ function App() {
     try {
       setRows(await api("projects"));
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableError(e));
     }
   }
   useEffect(() => {
@@ -367,7 +376,11 @@ function App() {
         if (saved.current === JSON.stringify(snapshot)) return;
         setStatus("Speichert …");
         try {
-          const parsed = projectSchema.parse(snapshot);
+          // Ein geleertes Namensfeld soll das Speichern nicht blockieren.
+          const parsed = projectSchema.parse({
+            ...snapshot,
+            name: snapshot.name.trim() || "Unbenannter Raum",
+          });
           const r = await api(
             "projects/" + parsed.id,
             { project: parsed, revision: revision.current },
@@ -381,7 +394,7 @@ function App() {
         } catch (e) {
           if ((e as any).status === 409) blocked.current = true;
           setStatus(blocked.current ? "Konflikt" : "Speichern fehlgeschlagen");
-          setError((e as Error).message);
+          setError(readableError(e));
           throw e;
         }
       });
@@ -424,10 +437,9 @@ function App() {
       setP(r.project);
       setSceneId(r.project.scenes[0]?.id ?? "");
       setStatus("Gespeichert");
-      setResults([]);
       setError("");
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableError(e));
     }
   }
   async function create() {
@@ -444,7 +456,7 @@ function App() {
       setStatus("Gespeichert");
       refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableError(e));
     } finally {
       setBusy(false);
     }
@@ -484,7 +496,7 @@ function App() {
       setTab("room");
       return true;
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableError(e));
       return false;
     } finally {
       setBusy(false);
@@ -620,11 +632,8 @@ function App() {
       );
       setError("");
     } catch (e) {
-      setError((e as Error).message);
+      setError(readableError(e));
     }
-  }
-  function choose(r: any) {
-    setForm({ ...blankItem(category), ...r, id: uid() });
   }
   function removeItem(id: string) {
     if (
@@ -745,7 +754,7 @@ function App() {
                       await load(imported.id);
                       refresh();
                     } catch (e) {
-                      setError((e as Error).message);
+                      setError(readableError(e));
                     }
                     e.target.value = "";
                   }}
@@ -787,7 +796,7 @@ function App() {
                         await api("projects/" + r.id, undefined, "DELETE");
                         refresh();
                       } catch (e) {
-                        setError((e as Error).message);
+                        setError(readableError(e));
                       }
                     }
                   }}
@@ -1177,16 +1186,8 @@ function App() {
                       }
                     />
                   </div>
-                  <button
-                    className="primary full"
-                    disabled={false}
-                    onClick={search}
-                  >
-                    {searchBusy ? (
-                      <Loader2 className="spin" size={17} />
-                    ) : (
-                      <Search size={17} />
-                    )}
+                  <button className="primary full" onClick={search}>
+                    <Search size={17} />
                     Möbel suchen
                   </button>
                   <div className="search-info">
@@ -1223,57 +1224,16 @@ function App() {
                     Eigenen Produktlink hinzufügen
                   </button>
                   <div className="results-heading">
-                    <span>
-                      {results.length
-                        ? "SUCHERGEBNISSE"
-                        : "DEINE NÄCHSTEN LIEBLINGSSTÜCKE"}
-                    </span>
-                    <span>
-                      {results.length ? results.length + " Treffer" : ""}
-                    </span>
+                    <span>DEINE NÄCHSTEN LIEBLINGSSTÜCKE</span>
                   </div>
-                  {!results.length ? (
-                    <div className="search-empty">
-                      <Search size={28} />
-                      <p>
-                        {searchBusy
-                          ? "Möbel werden gesucht …"
-                          : "Deine Suche beginnt hier."}
-                      </p>
-                      <small>
-                        Suche nach passenden Möbeln oder füge einen eigenen
-                        Produktlink hinzu.
-                      </small>
-                    </div>
-                  ) : (
-                    <div className="product-results">
-                      {results.map((r, i) => (
-                        <article key={i} className="result-card">
-                          <div className="result-image">
-                            {r.image ? (
-                              <img src={r.image} alt={r.name} />
-                            ) : (
-                              <Armchair size={32} />
-                            )}
-                          </div>
-                          <small>{r.merchant}</small>
-                          <h3>{r.name}</h3>
-                          <strong>{euro(r.price)}</strong>
-                          <button
-                            disabled={searchBusy}
-                            onClick={() => choose(r)}
-                          >
-                            {r.token ? "Händlerangebote" : "Auswählen"}
-                            <Plus size={15} />
-                          </button>
-                          <small>
-                            Preisstand{" "}
-                            {new Date(r.observedAt).toLocaleDateString("de-DE")}
-                          </small>
-                        </article>
-                      ))}
-                    </div>
-                  )}
+                  <div className="search-empty">
+                    <Search size={28} />
+                    <p>Deine Suche beginnt hier.</p>
+                    <small>
+                      Suche nach passenden Möbeln oder füge einen eigenen
+                      Produktlink hinzu.
+                    </small>
+                  </div>
                 </>
               ) : (
                 <div className="selected-items">
