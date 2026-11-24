@@ -18,10 +18,17 @@ export function removeBackground(
   ].filter((k) => input[k * 4 + 3] > 240);
   let reference = -1,
     count = 0;
-  const distance = (a: number, b: number) =>
-    Math.max(
-      ...[0, 1, 2].map((c) => Math.abs(input[a * 4 + c] - input[b * 4 + c])),
+  // Größte Abweichung in R, G oder B. Ohne Hilfs-Arrays: Diese Funktion läuft
+  // für jedes Pixel (bei 2048 × 2048 über 4 Millionen Mal).
+  const distance = (a: number, b: number) => {
+    const i = a * 4,
+      j = b * 4;
+    return Math.max(
+      Math.abs(input[i] - input[j]),
+      Math.abs(input[i + 1] - input[j + 1]),
+      Math.abs(input[i + 2] - input[j + 2]),
     );
+  };
   for (const corner of corners) {
     const matches = corners.filter(
       (c) => distance(c, corner) <= tolerance,
@@ -36,10 +43,19 @@ export function removeBackground(
     queue = new Int32Array(width * height);
   let head = 0,
     tail = 0;
+  const r0 = input[reference * 4],
+    g0 = input[reference * 4 + 1],
+    b0 = input[reference * 4 + 2];
   function add(k: number) {
     if (k < 0 || k >= visited.length || visited[k]) return;
     visited[k] = 1;
-    if (input[k * 4 + 3] < 8 || distance(k, reference) <= tolerance)
+    const i = k * 4;
+    if (
+      input[i + 3] < 8 ||
+      (Math.abs(input[i] - r0) <= tolerance &&
+        Math.abs(input[i + 1] - g0) <= tolerance &&
+        Math.abs(input[i + 2] - b0) <= tolerance)
+    )
       queue[tail++] = k;
   }
   for (let x = 0; x < width; x++) {
@@ -64,13 +80,13 @@ export function removeBackground(
     minY = height,
     maxX = -1,
     maxY = -1;
-  for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++)
-      if (pixels[(y * width + x) * 4 + 3] > 8) {
-        minX = Math.min(minX, x);
-        maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
+  for (let y = 0, k = 3; y < height; y++)
+    for (let x = 0; x < width; x++, k += 4)
+      if (pixels[k] > 8) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        maxY = y;
       }
   if (maxX < minX || tail < width * height * 0.02) return unchanged();
   return {

@@ -1,5 +1,7 @@
 # Raumplaner Studio – ohne externe API-Schlüssel
 
+[![Prüfungen](https://github.com/konradcossmann2010-maker/raumplaner-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/konradcossmann2010-maker/raumplaner-studio/actions/workflows/ci.yml)
+
 Raumfotos hochladen, Möbelbilder manuell platzieren, Kategorien und Preise einstellen und PNG/CSV exportieren. Keine SerpApi, kein kostenpflichtiger Suchdienst, kein zusätzlicher API-Zugang.
 
 ## Sofort starten: einzelne Offline-Datei
@@ -52,7 +54,7 @@ npx playwright install chromium   # einmalig
 npm run test:browser              # alle Browsertests ohne Server
 ```
 
-Bei jedem Push auf `main` und bei jedem Pull Request laufen diese Prüfungen automatisch über GitHub Actions (`.github/workflows/ci.yml`). Die fertige Offline-Datei liegt dort als Artefakt `raumplaner-offline` zum Herunterladen bereit.
+Bei jedem Push auf `main` und bei jedem Pull Request laufen diese Prüfungen automatisch über GitHub Actions (`.github/workflows/ci.yml`), zusätzlich der Online-Modus mit lokalem Worker, D1 und R2 (`scripts/smoke.mjs`, `scripts/edge-cases.mjs`). Dependabot schlägt monatlich Paket-Updates vor. Die fertige Offline-Datei liegt dort als Artefakt `raumplaner-offline` zum Herunterladen bereit.
 
 Der Offline-Browsertest startet Chromium mit abgeschaltetem Netzwerk und prüft Suche-Links, Raum-/Möbelbilder, Platzierung, Budget, Speichern/Wiederöffnen, PNG-Export, Projektsicherung und Wiederherstellung. Er erwartet null HTTP-Anfragen. Einzelne Tests: `node scripts/browser-tests.mjs offline-smoke price-input-smoke`. Standardmäßig nutzt Playwright sein eigenes Chromium; ein anderes Chromium lässt sich über `CHROMIUM_PATH=/pfad/zu/chromium` wählen.
 

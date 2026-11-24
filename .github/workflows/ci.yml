@@ -53,3 +53,36 @@ jobs:
           path: outputs/
           if-no-files-found: ignore
           retention-days: 7
+
+  online:
+    name: Online-Modus (Worker + lokale D1/R2)
+    runs-on: ubuntu-latest
+    env:
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Datenbank anlegen
+        run: npm run db:local
+      - name: Worker starten
+        run: |
+          npx wrangler dev --local --ip 127.0.0.1 --port 8787 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8787/ > /dev/null && exit 0
+            sleep 2
+          done
+          cat wrangler.log
+          exit 1
+      - name: Speichern, Bilder, Budget, Export (online)
+        run: node scripts/smoke.mjs
+      - name: Zuschneiden, Rückgängig, Konflikt zwischen Geräten
+        run: node scripts/edge-cases.mjs
+      - name: Server-Log
+        if: failure()
+        run: cat wrangler.log
